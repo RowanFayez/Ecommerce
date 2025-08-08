@@ -62,4 +62,7 @@ class AppColors {
   static const Color darkText = Colors.white;
   static const Color darkTextSecondary = Color(0xFFB0B0B0);
   static const Color darkBorder = Color(0xFF424242);
+
+  static const Color cartButtonBackground = Color(0xFF0F1B2B);
+  static const Color cartButtonIcon = Colors.white;
 }

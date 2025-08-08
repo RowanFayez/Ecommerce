@@ -8,6 +8,7 @@ class AppDimensions {
   static const double spacing16 = 16.0;
   static const double spacing20 = 20.0;
   static const double spacing24 = 24.0;
+  static const double spacing28 = 28.0;
   static const double spacing32 = 32.0;
 
   // Padding

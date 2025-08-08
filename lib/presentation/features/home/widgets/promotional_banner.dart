@@ -9,11 +9,13 @@ class PromotionalBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = ResponsiveUtils.getScreenWidth(context);
 
     return Padding(
       padding: ResponsiveUtils.getHorizontalPadding(context),
       child: Container(
         height: ResponsiveUtils.getResponsiveSpacing(context, 160),
+        width: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -39,163 +41,217 @@ class PromotionalBanner extends StatelessWidget {
               // TODO: Navigate to shop or promotional page
               print('Promotional banner tapped');
             },
-            child: Row(
-              children: [
-                // Left side - Text content
-                Expanded(
-                  flex: 3,
-                  child: Padding(
-                    padding: EdgeInsets.all(
-                        ResponsiveUtils.getResponsiveSpacing(context, 20)),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Shop with us!',
-                          style: TextStyle(
-                            fontSize: ResponsiveUtils.getResponsiveFontSize(
-                                context, AppDimensions.fontMedium),
-                            color: isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.textSecondary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        SizedBox(
-                            height: ResponsiveUtils.getResponsiveSpacing(
-                                context, 8)),
-                        Text(
-                          'Get 40% Off\nfor all items',
-                          style: TextStyle(
-                            fontSize: ResponsiveUtils.getResponsiveFontSize(
-                                context, AppDimensions.fontHeading),
-                            color:
-                                isDark ? AppColors.darkText : AppColors.black,
-                            fontWeight: FontWeight.bold,
-                            height: 1.2,
-                          ),
-                        ),
-                        SizedBox(
-                            height: ResponsiveUtils.getResponsiveSpacing(
-                                context, 16)),
-                        // Fixed button layout to prevent overflow
-                        Container(
-                          constraints: BoxConstraints(
-                            maxWidth: ResponsiveUtils.getResponsiveSpacing(
-                                context, 120),
-                          ),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: ResponsiveUtils.getResponsiveSpacing(
-                                context, 12),
-                            vertical: ResponsiveUtils.getResponsiveSpacing(
-                                context, 8),
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(
-                                AppDimensions.radiusMedium),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primary.withOpacity(0.3),
-                                blurRadius: AppDimensions.blurRadiusSmall,
-                                offset: const Offset(0, 2),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
+              child: Row(
+                children: [
+                  // Left side - Text content (Fixed width to prevent overflow)
+                  Expanded(
+                    flex: ResponsiveUtils.isMobile(context) ? 3 : 2,
+                    child: Padding(
+                      padding: EdgeInsets.all(
+                        ResponsiveUtils.getResponsiveSpacing(context, 16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Smaller top text
+                          Flexible(
+                            child: Text(
+                              'Shop with us!',
+                              style: TextStyle(
+                                fontSize: ResponsiveUtils.getResponsiveFontSize(
+                                  context,
+                                  AppDimensions.fontSmall,
+                                ),
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.textSecondary,
+                                fontWeight: FontWeight.w500,
                               ),
-                            ],
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Shop Now',
+
+                          SizedBox(
+                            height: ResponsiveUtils.getResponsiveSpacing(
+                                context, 4),
+                          ),
+
+                          // Main promotional text (Fixed to prevent overflow)
+                          Flexible(
+                            flex: 2,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Get 40% Off\nfor all items',
                                 style: TextStyle(
-                                  fontSize: AppDimensions.fontMedium,
-                                  color: AppColors.textOnPrimary,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize:
+                                      ResponsiveUtils.getResponsiveFontSize(
+                                    context,
+                                    ResponsiveUtils.isMobile(context)
+                                        ? AppDimensions.fontXLarge
+                                        : AppDimensions.fontHeading,
+                                  ),
+                                  color: isDark
+                                      ? AppColors.darkText
+                                      : AppColors.black,
+                                  fontWeight: FontWeight.bold,
+                                  height: 1.1,
+                                ),
+                                maxLines: 2,
+                              ),
+                            ),
+                          ),
+
+                          SizedBox(
+                            height: ResponsiveUtils.getResponsiveSpacing(
+                                context, 12),
+                          ),
+
+                          // Shop Now Button (Fixed container to prevent overflow)
+                          Container(
+                            constraints: BoxConstraints(
+                              maxWidth:
+                                  ResponsiveUtils.isMobile(context) ? 100 : 120,
+                              minHeight: 32,
+                            ),
+                            child: Material(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(
+                                AppDimensions.radiusMedium,
+                              ),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(
+                                  AppDimensions.radiusMedium,
+                                ),
+                                onTap: () {
+                                  // TODO: Navigate to shop
+                                  print('Shop Now tapped');
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal:
+                                        ResponsiveUtils.getResponsiveSpacing(
+                                      context,
+                                      8,
+                                    ),
+                                    vertical:
+                                        ResponsiveUtils.getResponsiveSpacing(
+                                      context,
+                                      6,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          'Shop Now',
+                                          style: TextStyle(
+                                            fontSize: AppDimensions.fontSmall,
+                                            color: AppColors.textOnPrimary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: ResponsiveUtils
+                                            .getResponsiveSpacing(
+                                          context,
+                                          4,
+                                        ),
+                                      ),
+                                      Icon(
+                                        Icons.arrow_forward,
+                                        size: AppDimensions.iconSmall,
+                                        color: AppColors.textOnPrimary,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                              SizedBox(
-                                  width: ResponsiveUtils.getResponsiveSpacing(
-                                      context, 4)),
-                              Icon(
-                                Icons.arrow_forward,
-                                size: AppDimensions.iconSmall,
-                                color: AppColors.textOnPrimary,
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
-                // Right side - Image placeholder
-                Expanded(
-                  flex: 2,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.only(
-                        topRight: Radius.circular(AppDimensions.radiusLarge),
-                        bottomRight: Radius.circular(AppDimensions.radiusLarge),
-                      ),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.only(
-                        topRight: Radius.circular(AppDimensions.radiusLarge),
-                        bottomRight: Radius.circular(AppDimensions.radiusLarge),
-                      ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              AppColors.productImagePlaceholder,
-                              AppColors.productImagePlaceholder
-                                  .withOpacity(0.8),
-                            ],
-                          ),
+                  // Right side - Image placeholder (Fixed to prevent overflow)
+                  Expanded(
+                    flex: ResponsiveUtils.isMobile(context) ? 2 : 2,
+                    child: Container(
+                      height: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.only(
+                          topRight: Radius.circular(AppDimensions.radiusLarge),
+                          bottomRight:
+                              Radius.circular(AppDimensions.radiusLarge),
                         ),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(
-                                    ResponsiveUtils.getResponsiveSpacing(
-                                        context, 12)),
-                                decoration: BoxDecoration(
-                                  color: AppColors.white.withOpacity(0.9),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.person,
-                                  size: ResponsiveUtils.getResponsiveSpacing(
-                                      context, 40),
-                                  color: AppColors.textLight,
-                                ),
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            AppColors.productImagePlaceholder,
+                            AppColors.productImagePlaceholder.withOpacity(0.8),
+                          ],
+                        ),
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(
+                                ResponsiveUtils.getResponsiveSpacing(
+                                    context, 8),
                               ),
-                              SizedBox(
-                                  height: ResponsiveUtils.getResponsiveSpacing(
-                                      context, 8)),
-                              Text(
+                              decoration: BoxDecoration(
+                                color: AppColors.white.withOpacity(0.9),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.person,
+                                size: ResponsiveUtils.getResponsiveSpacing(
+                                  context,
+                                  ResponsiveUtils.isMobile(context) ? 24 : 32,
+                                ),
+                                color: AppColors.textLight,
+                              ),
+                            ),
+                            SizedBox(
+                              height: ResponsiveUtils.getResponsiveSpacing(
+                                  context, 4),
+                            ),
+                            Flexible(
+                              child: Text(
                                 'Man in Suit\nImage',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: AppDimensions.fontSmall,
                                   color: AppColors.textLight,
                                   fontWeight: FontWeight.w500,
+                                  height: 1.2,
                                 ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
