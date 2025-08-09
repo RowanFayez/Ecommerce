@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import '../../../../data/datasources/api_client.dart';
 import '../../../../data/models/auth_request.dart';
 import '../../../../data/models/user.dart';
+import '../../../../core/di/injection.dart';
+import '../../../../core/services/auth_token_store.dart';
 
 class AuthController {
   final ApiClient _apiClient;
@@ -21,6 +23,9 @@ class AuthController {
       print('📤 Sending login request...');
       final response = await _apiClient.login(request);
       print('✅ Login successful! Token: ${response.token}');
+
+      // Persist token for authenticated requests
+      getIt<AuthTokenStore>().save(response.token);
 
       return {
         'success': true,

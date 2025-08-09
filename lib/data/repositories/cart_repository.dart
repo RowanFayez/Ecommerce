@@ -6,6 +6,7 @@ abstract class CartRepository {
   Future<List<Cart>> getAllCarts();
   Future<Cart> getCartById(int id);
   Future<List<Cart>> getUserCarts(int userId);
+  Future<void> deleteCart(int id);
 }
 
 @Injectable(as: CartRepository)
@@ -38,6 +39,15 @@ class ApiCartRepository implements CartRepository {
       return await _apiClient.getUserCarts(userId);
     } catch (e) {
       throw Exception('Failed to fetch user carts: $e');
+    }
+  }
+
+  @override
+  Future<void> deleteCart(int id) async {
+    try {
+      await _apiClient.deleteCart(id);
+    } catch (e) {
+      throw Exception('Failed to delete cart: $e');
     }
   }
 }

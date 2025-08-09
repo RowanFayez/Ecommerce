@@ -3,8 +3,9 @@ import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 
 import '../../data/datasources/api_client.dart';
-import '../../data/repositories/product_repository.dart';
-import 'package:taskaia/presentation/features/home/controller/home_controller.dart';
+// import '../../data/repositories/product_repository.dart';
+// import 'package:taskaia/presentation/features/home/controller/home_controller.dart';
+import '../services/auth_token_store.dart';
 
 import 'injection.config.dart';
 
@@ -34,9 +35,25 @@ abstract class RegisterModule {
       ),
     );
 
+    // Attach token if available
+    dio.interceptors.add(
+      InterceptorsWrapper(onRequest: (options, handler) {
+        final token = getIt.isRegistered<AuthTokenStore>()
+            ? getIt<AuthTokenStore>().token
+            : null;
+        if (token != null && token.isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+        handler.next(options);
+      }),
+    );
+
     return dio;
   }
 
   @singleton
   ApiClient apiClient(Dio dio) => ApiClient(dio);
+
+  @singleton
+  AuthTokenStore get authTokenStore => AuthTokenStore();
 }
