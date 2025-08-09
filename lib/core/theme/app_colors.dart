@@ -65,4 +65,6 @@ class AppColors {
 
   static const Color cartButtonBackground = Color(0xFF0F1B2B);
   static const Color cartButtonIcon = Colors.white;
+
+  static var secondary;
 }
