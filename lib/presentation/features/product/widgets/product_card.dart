@@ -5,7 +5,7 @@ import '../../../../core/utils/responsive_utils.dart';
 import 'package:taskaia/data/models/product.dart';
 import 'product_image_section.dart';
 import 'product_info_section.dart';
-import 'product_cart_button.dart';
+// import 'product_cart_button.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -23,7 +23,7 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardHeight = ResponsiveUtils.getCardHeight(context) + 40;
-    final cartButtonSize = ResponsiveUtils.getResponsiveSpacing(context, 48);
+    // final cartButtonSize = ResponsiveUtils.getResponsiveSpacing(context, 48);
 
     return GestureDetector(
       onTap: onTap,
@@ -38,16 +38,8 @@ class ProductCard extends StatelessWidget {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            // Main Card Container
+            // Main Card Container (now handles its own cart badge in image)
             _buildMainCard(context, isDark, cardHeight),
-
-            // Floating Cart Button
-            ProductCartButton(
-              product: product,
-              cardHeight: cardHeight,
-              cartButtonSize: cartButtonSize,
-              onCartPressed: onCartPressed,
-            ),
           ],
         ),
       ),
@@ -81,7 +73,10 @@ class ProductCard extends StatelessWidget {
           // Product Image Section
           Expanded(
             flex: 3,
-            child: ProductImageSection(product: product),
+            child: ProductImageSection(
+              product: product,
+              onCartPressed: onCartPressed,
+            ),
           ),
 
           // Product Info Section
