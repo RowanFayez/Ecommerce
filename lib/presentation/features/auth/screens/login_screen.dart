@@ -148,6 +148,12 @@ class LoginScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              SizedBox(
+                height: ResponsiveUtils.getResponsiveSpacing(
+                  context,
+                  AppDimensions.spacing16,
+                ),
+              ),
             ],
           ),
         ),

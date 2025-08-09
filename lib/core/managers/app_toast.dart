@@ -29,6 +29,34 @@ class AppToast {
       }
     });
   }
+
+  static void showError(
+    BuildContext context,
+    String message, {
+    String? subtitle,
+  }) {
+    final overlay = Overlay.of(context);
+    late OverlayEntry overlayEntry;
+
+    overlayEntry = OverlayEntry(
+      builder: (context) => _ToastWidget(
+        message: message,
+        subtitle: subtitle,
+        icon: Icons.error,
+        color: AppColors.warningRed,
+        onDismiss: () => overlayEntry.remove(),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+
+    // Auto dismiss after 4 seconds for errors
+    Future.delayed(const Duration(seconds: 4), () {
+      if (overlayEntry.mounted) {
+        overlayEntry.remove();
+      }
+    });
+  }
 }
 
 class _ToastWidget extends StatefulWidget {
