@@ -20,9 +20,11 @@ abstract class RegisterModule {
   @singleton
   Dio get dio {
     final dio = Dio();
-    dio.options.connectTimeout = const Duration(seconds: 30);
-    dio.options.receiveTimeout = const Duration(seconds: 30);
-    dio.options.sendTimeout = const Duration(seconds: 30);
+    // Network can be slow on some devices/emulators; give generous timeouts
+    dio.options.connectTimeout = const Duration(seconds: 90);
+    dio.options.receiveTimeout = const Duration(seconds: 90);
+    dio.options.sendTimeout = const Duration(seconds: 90);
+    dio.options.baseUrl = 'https://fakestoreapi.com';
 
     // Add logging interceptor for debugging
     dio.interceptors.add(
