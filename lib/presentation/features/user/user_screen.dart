@@ -3,6 +3,7 @@ import '../../../core/di/injection.dart';
 import '../../../data/datasources/api_client.dart';
 import '../../../data/models/user.dart';
 import 'user_card.dart';
+import 'create_user_screen.dart';
 
 class UserScreen extends StatefulWidget {
   const UserScreen({super.key});
@@ -88,15 +89,38 @@ class _UserScreenState extends State<UserScreen> {
 
     return RefreshIndicator(
       onRefresh: _fetchUsers,
-      child: ListView.builder(
-        itemCount: _users.length,
-        itemBuilder: (context, index) {
-          final user = _users[index];
-          return UserCard(
-            user: user,
-            onUpdated: _onUserUpdated,
-          );
-        },
+      child: Stack(
+        children: [
+          ListView.builder(
+            padding: const EdgeInsets.only(bottom: 80),
+            itemCount: _users.length,
+            itemBuilder: (context, index) {
+              final user = _users[index];
+              return UserCard(
+                user: user,
+                onUpdated: _onUserUpdated,
+              );
+            },
+          ),
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: FloatingActionButton.extended(
+              onPressed: () async {
+                final created = await Navigator.of(context).push<User>(
+                  MaterialPageRoute(builder: (_) => const CreateUserScreen()),
+                );
+                if (created != null) {
+                  setState(() {
+                    _users.insert(0, created);
+                  });
+                }
+              },
+              icon: const Icon(Icons.person_add_alt_1),
+              label: const Text('Add User'),
+            ),
+          ),
+        ],
       ),
     );
   }

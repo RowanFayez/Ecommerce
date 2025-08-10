@@ -6,6 +6,7 @@ import '../../data/datasources/api_client.dart';
 // import '../../data/repositories/product_repository.dart';
 // import 'package:taskaia/presentation/features/home/controller/home_controller.dart';
 import '../services/auth_token_store.dart';
+import '../services/local_user_store.dart';
 
 import 'injection.config.dart';
 
@@ -56,4 +57,7 @@ abstract class RegisterModule {
 
   @singleton
   AuthTokenStore get authTokenStore => AuthTokenStore();
+
+  @singleton
+  LocalUserStore get localUserStore => LocalUserStore();
 }

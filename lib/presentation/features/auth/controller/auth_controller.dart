@@ -4,12 +4,13 @@ import '../../../../data/models/auth_request.dart';
 import '../../../../data/models/user.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/services/auth_token_store.dart';
+import '../../../../core/services/local_user_store.dart';
 
 class AuthController {
   final ApiClient _apiClient;
 
   AuthController({ApiClient? apiClient})
-      : _apiClient = apiClient ?? ApiClient(Dio());
+      : _apiClient = apiClient ?? getIt<ApiClient>();
 
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
@@ -39,10 +40,14 @@ class AuthController {
 
       String errorMessage = 'Login failed';
 
-      if (e.response?.statusCode == 401) {
-        errorMessage = 'Invalid email or password';
-      } else if (e.response?.statusCode == 400) {
-        errorMessage = 'Please check your input';
+      // If FakeStore rejects credentials (common for non-demo users),
+      // try matching against /users and locally created users.
+      if (e.response?.statusCode == 401 || e.response?.statusCode == 400) {
+        final fallback = await _tryDatasetLogin(email, password);
+        if (fallback['success'] == true) {
+          return fallback;
+        }
+        errorMessage = 'Invalid username/email or password';
       } else if (e.type == DioExceptionType.connectionTimeout) {
         errorMessage = 'Connection timeout. Please try again.';
       } else if (e.type == DioExceptionType.receiveTimeout) {
@@ -62,6 +67,51 @@ class AuthController {
         'message': 'An unexpected error occurred. Please try again.',
       };
     }
+  }
+
+  Future<Map<String, dynamic>> _tryDatasetLogin(
+      String usernameOrEmail, String password) async {
+    try {
+      print('🔎 Fallback: validating against dataset and local users...');
+      final apiUsers = await _apiClient.getUsers();
+      final localUsers = getIt.isRegistered<LocalUserStore>()
+          ? getIt<LocalUserStore>().users
+          : const <User>[];
+      final all = [...apiUsers, ...localUsers];
+      final input = usernameOrEmail.trim();
+      final match = all.firstWhere(
+        (u) =>
+            (u.username == input || u.email == input) && u.password == password,
+        orElse: () => const User(
+          id: -1,
+          email: '',
+          username: '',
+          password: '',
+          name: Name(firstname: '', lastname: ''),
+          phone: '',
+          address: Address(
+            city: '',
+            street: '',
+            number: 0,
+            zipcode: '',
+            geolocation: GeoLocation(lat: '', long: ''),
+          ),
+        ),
+      );
+      if (match.id != -1) {
+        final token =
+            'local-demo-token-${match.username}-${DateTime.now().millisecondsSinceEpoch}';
+        getIt<AuthTokenStore>().save(token);
+        return {
+          'success': true,
+          'token': token,
+          'message': 'Login successful',
+        };
+      }
+    } catch (err) {
+      print('❌ Dataset/local login failed: $err');
+    }
+    return {'success': false, 'message': 'Invalid credentials'};
   }
 
   Future<Map<String, dynamic>> signup(
