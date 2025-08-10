@@ -13,3 +13,4 @@ class AuthTokenStore {
     _token = null;
   }
 }
+
