@@ -29,7 +29,16 @@ class Product {
   double get ratingValue => rating.rate;
   int get reviewCount => rating.count;
 
-  factory Product.fromJson(Map<String, dynamic> json) => _$ProductFromJson(json);
+  factory Product.fromJson(Map<String, dynamic> json) {
+    print('Product.fromJson: Raw JSON data: $json');
+    print('Product.fromJson: Image field value: ${json['image']}');
+    print('Product.fromJson: Image field type: ${json['image'].runtimeType}');
+
+    final product = _$ProductFromJson(json);
+    print('Product.fromJson: Parsed product image: ${product.image}');
+    return product;
+  }
+
   Map<String, dynamic> toJson() => _$ProductToJson(this);
 
   Product copyWith({

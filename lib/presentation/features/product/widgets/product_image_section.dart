@@ -23,6 +23,16 @@ class ProductImageSection extends StatelessWidget {
     final cornerRadius = ResponsiveUtils.getResponsiveSpacing(
         context, AppDimensions.radiusLarge);
 
+    // Debug: Print product image information
+    print('ProductImageSection: Product ID: ${product.id}');
+    print('ProductImageSection: Product Title: ${product.title}');
+    print('ProductImageSection: Product Category: ${product.category}');
+    print('ProductImageSection: Product Image URL: ${product.imageUrl}');
+    print(
+        'ProductImageSection: Product Image URL length: ${product.imageUrl.length}');
+    print(
+        'ProductImageSection: Product Image URL is empty: ${product.imageUrl.isEmpty}');
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -43,38 +53,121 @@ class ProductImageSection extends StatelessWidget {
                 fit: BoxFit.cover,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
+                  print(
+                      'ProductImageSection: Loading image for product ${product.id} - ${loadingProgress.expectedTotalBytes != null ? '${loadingProgress.cumulativeBytesLoaded}/${loadingProgress.expectedTotalBytes}' : 'Unknown size'}');
                   return Container(
                     color: isDark
                         ? AppColors.darkSurface
                         : AppColors.productImagePlaceholder,
                     child: Center(
-                      child: SizedBox(
-                        width: ResponsiveUtils.getResponsiveSpacing(
-                            context, AppDimensions.iconMedium),
-                        height: ResponsiveUtils.getResponsiveSpacing(
-                            context, AppDimensions.iconMedium),
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(AppColors.primary),
-                        ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: ResponsiveUtils.getResponsiveSpacing(
+                                context, AppDimensions.iconMedium),
+                            height: ResponsiveUtils.getResponsiveSpacing(
+                                context, AppDimensions.iconMedium),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.primary),
+                            ),
+                          ),
+                          SizedBox(
+                              height: ResponsiveUtils.getResponsiveSpacing(
+                                  context, 8)),
+                          Text(
+                            'Loading...',
+                            style: TextStyle(
+                              fontSize: ResponsiveUtils.getResponsiveFontSize(
+                                context,
+                                AppDimensions.fontSmall,
+                              ),
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   );
                 },
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: isDark
-                      ? AppColors.darkSurface
-                      : AppColors.productImagePlaceholder,
-                  child: Icon(
-                    Icons.image_not_supported_outlined,
-                    size: ResponsiveUtils.getResponsiveSpacing(
-                        context, AppDimensions.iconXLarge),
+                errorBuilder: (context, error, stackTrace) {
+                  print(
+                      'ProductImageSection: Error loading image for product ${product.id}');
+                  print('ProductImageSection: Error: $error');
+                  print('ProductImageSection: Image URL: ${product.imageUrl}');
+
+                  return Container(
                     color: isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.textLight,
-                  ),
-                ),
+                        ? AppColors.darkSurface
+                        : AppColors.productImagePlaceholder,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.image_not_supported_outlined,
+                          size: ResponsiveUtils.getResponsiveSpacing(
+                              context, AppDimensions.iconXLarge),
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.textLight,
+                        ),
+                        SizedBox(
+                            height: ResponsiveUtils.getResponsiveSpacing(
+                                context, 8)),
+                        Text(
+                          'Image not available',
+                          style: TextStyle(
+                            fontSize: ResponsiveUtils.getResponsiveFontSize(
+                              context,
+                              AppDimensions.fontSmall,
+                            ),
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(
+                            height: ResponsiveUtils.getResponsiveSpacing(
+                                context, 8)),
+                        // Show category info
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: ResponsiveUtils.getResponsiveSpacing(
+                                context, 12),
+                            vertical: ResponsiveUtils.getResponsiveSpacing(
+                                context, 4),
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? AppColors.darkCard
+                                : AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(
+                              ResponsiveUtils.getResponsiveSpacing(context, 12),
+                            ),
+                          ),
+                          child: Text(
+                            product.category,
+                            style: TextStyle(
+                              fontSize: ResponsiveUtils.getResponsiveFontSize(
+                                context,
+                                AppDimensions.fontSmall,
+                              ),
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
           ),

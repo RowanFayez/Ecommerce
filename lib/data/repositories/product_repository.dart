@@ -39,6 +39,9 @@ class ApiProductRepository implements ProductRepository {
   Future<List<Product>> getProductsByCategory(String category) async {
     try {
       print('ProductRepository: Fetching products for category: "$category"');
+      print('ProductRepository: Category type: ${category.runtimeType}');
+      print('ProductRepository: Category length: ${category.length}');
+
       final products = await _apiClient.getProductsByCategory(category);
       print(
           'ProductRepository: Successfully fetched ${products.length} products for category: "$category"');
@@ -46,6 +49,20 @@ class ApiProductRepository implements ProductRepository {
       if (products.isNotEmpty) {
         print(
             'ProductRepository: Sample product from category "$category" - ${products.first.title}');
+        print(
+            'ProductRepository: Sample product category: ${products.first.category}');
+        print(
+            'ProductRepository: Sample product image: ${products.first.image}');
+
+        // Debug: Check all products for category consistency
+        for (int i = 0; i < products.length; i++) {
+          final product = products[i];
+          print('ProductRepository: Product $i - Title: ${product.title}');
+          print(
+              'ProductRepository: Product $i - Category: ${product.category}');
+          print('ProductRepository: Product $i - Image: ${product.image}');
+          print('---');
+        }
       } else {
         print('ProductRepository: No products found for category "$category"');
       }
@@ -54,6 +71,8 @@ class ApiProductRepository implements ProductRepository {
     } catch (e) {
       print(
           'ProductRepository: Error fetching products for category "$category": $e');
+      print('ProductRepository: Error type: ${e.runtimeType}');
+      print('ProductRepository: Error details: $e');
       throw Exception('Failed to fetch products by category: $e');
     }
   }
