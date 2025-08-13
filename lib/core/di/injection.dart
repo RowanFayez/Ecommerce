@@ -38,19 +38,6 @@ abstract class RegisterModule {
       ),
     );
 
-    // Attach token if available
-    dio.interceptors.add(
-      InterceptorsWrapper(onRequest: (options, handler) {
-        final token = getIt.isRegistered<AuthTokenStore>()
-            ? getIt<AuthTokenStore>().token
-            : null;
-        if (token != null && token.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        handler.next(options);
-      }),
-    );
-
     return dio;
   }
 

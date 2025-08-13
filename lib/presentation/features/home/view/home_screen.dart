@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/animation/page_transitions.dart';
 import 'package:taskaia/core/managers/app_bottom_sheet.dart';
+import 'package:taskaia/core/managers/app_dialog.dart';
 import 'package:taskaia/core/routing/app_routes.dart';
 import 'package:taskaia/core/theme/theme_manager.dart';
 import 'package:taskaia/core/di/injection.dart';
+import 'package:taskaia/core/services/auth_token_store.dart';
 import 'package:taskaia/presentation/features/product/screens/product_details_screen.dart';
 import '../controller/home_controller.dart';
 import '../../../../core/theme/app_strings.dart';
@@ -19,6 +21,7 @@ import '../widgets/promotional_banner.dart';
 import '../widgets/search_bar_widget.dart';
 import '../../cart/cart_screen.dart';
 import '../../user/user_screen.dart';
+import '../../auth/controller/auth_controller.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -51,173 +54,220 @@ class _HomeScreenState extends State<HomeScreen> {
     await _homeController.loadProducts();
   }
 
+  void _showLoginRequiredDialog() {
+    AppDialog.showInstructionDialog(
+      context,
+      title: 'Login Required',
+      content:
+          'You need to log in to access this feature. Please sign in to continue.',
+      buttonText: 'Login Now',
+      onPressed: () {
+        Navigator.of(context).pop(); // Close dialog
+        AppRoutes.navigateToLogin(
+          context,
+          clearStack: true,
+          transition: TransitionType.slideFromLeft,
+        );
+      },
+    );
+  }
+
+  void _handleCartAccess() {
+    final authTokenStore = getIt<AuthTokenStore>();
+    if (authTokenStore.isAuthenticated) {
+      Navigator.push(
+          context, MaterialPageRoute(builder: (_) => const CartScreen()));
+    } else {
+      _showLoginRequiredDialog();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return ChangeNotifierProvider.value(
       value: _homeController,
-      child: Scaffold(
-        backgroundColor:
-            isDark ? AppColors.darkBackground : AppColors.background,
-        appBar: AppBar(
-          backgroundColor:
-              isDark ? AppColors.darkBackground : AppColors.background,
-          elevation: 0,
-          leading: Icon(
-            Icons.menu,
-            size: ResponsiveUtils.getResponsiveIconSize(
-              context,
-              AppDimensions.iconMedium,
-            ),
-            color: isDark ? AppColors.darkText : AppColors.black,
-          ),
-          actions: [
-            IconButton(
-              icon: Icon(
-                Icons.shopping_cart,
+      child: Consumer<AuthTokenStore>(
+        builder: (context, authTokenStore, child) {
+          return Scaffold(
+            backgroundColor:
+                isDark ? AppColors.darkBackground : AppColors.background,
+            appBar: AppBar(
+              backgroundColor:
+                  isDark ? AppColors.darkBackground : AppColors.background,
+              elevation: 0,
+              leading: Icon(
+                Icons.menu,
                 size: ResponsiveUtils.getResponsiveIconSize(
                   context,
                   AppDimensions.iconMedium,
                 ),
                 color: isDark ? AppColors.darkText : AppColors.black,
               ),
-              tooltip: 'Carts',
-              onPressed: () {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const CartScreen()));
-              },
-            ),
-            IconButton(
-              icon: Icon(
-                Icons.person,
-                size: ResponsiveUtils.getResponsiveIconSize(
-                  context,
-                  AppDimensions.iconMedium,
+              title: !authTokenStore.isAuthenticated
+                  ? Text(
+                      'Guest Mode',
+                      style: TextStyle(
+                        fontSize: AppDimensions.fontMedium,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    )
+                  : null,
+              actions: [
+                IconButton(
+                  icon: Icon(
+                    Icons.shopping_cart,
+                    size: ResponsiveUtils.getResponsiveIconSize(
+                      context,
+                      AppDimensions.iconMedium,
+                    ),
+                    color: isDark ? AppColors.darkText : AppColors.black,
+                  ),
+                  tooltip: 'Cart',
+                  onPressed: _handleCartAccess,
                 ),
-                color: isDark ? AppColors.darkText : AppColors.black,
-              ),
-              tooltip: 'Users',
-              onPressed: () {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const UserScreen()));
-              },
-            ),
-            Switch(
-              value: _themeManager.isDarkMode,
-              onChanged: (value) {
-                _themeManager.toggleTheme();
-                setState(() {});
-              },
-              activeColor: AppColors.primary,
-            ),
-            IconButton(
-              icon: Icon(
-                Icons.logout,
-                size: ResponsiveUtils.getResponsiveIconSize(
-                  context,
-                  AppDimensions.iconMedium,
+                IconButton(
+                  icon: Icon(
+                    Icons.person,
+                    size: ResponsiveUtils.getResponsiveIconSize(
+                      context,
+                      AppDimensions.iconMedium,
+                    ),
+                    color: isDark ? AppColors.darkText : AppColors.black,
+                  ),
+                  tooltip: 'Users',
+                  onPressed: () {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const UserScreen()));
+                  },
                 ),
-                color: isDark ? AppColors.darkText : AppColors.black,
-              ),
-              onPressed: _showLogoutConfirmation,
-              tooltip: AppStrings.logout,
+                Switch(
+                  value: _themeManager.isDarkMode,
+                  onChanged: (value) {
+                    _themeManager.toggleTheme();
+                    setState(() {});
+                  },
+                  activeColor: AppColors.primary,
+                ),
+                IconButton(
+                  icon: Icon(
+                    !authTokenStore.isAuthenticated
+                        ? Icons.login
+                        : Icons.logout,
+                    size: ResponsiveUtils.getResponsiveIconSize(
+                      context,
+                      AppDimensions.iconMedium,
+                    ),
+                    color: isDark ? AppColors.darkText : AppColors.black,
+                  ),
+                  onPressed: !authTokenStore.isAuthenticated
+                      ? () => _showLoginRequiredDialog()
+                      : _showLogoutConfirmation,
+                  tooltip: !authTokenStore.isAuthenticated
+                      ? 'Login'
+                      : AppStrings.logout,
+                ),
+              ],
             ),
-          ],
-        ),
-        body: Consumer<HomeController>(
-          builder: (context, controller, child) {
-            return SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const HomeHeader(),
+            body: Consumer<HomeController>(
+              builder: (context, controller, child) {
+                return SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const HomeHeader(),
 
-                  // Search Bar
-                  SearchBarWidget(
-                    controller: _searchController,
-                    onSearch: (query) {
-                      // TODO: Implement search functionality
-                      print('Searching for: $query');
-                    },
+                      // Search Bar
+                      SearchBarWidget(
+                        controller: _searchController,
+                        onSearch: (query) {
+                          // TODO: Implement search functionality
+                          print('Searching for: $query');
+                        },
+                      ),
+
+                      SizedBox(
+                        height: ResponsiveUtils.getResponsiveSpacing(
+                          context,
+                          AppDimensions.spacing20,
+                        ),
+                      ),
+
+                      // Promotional Banner
+                      const PromotionalBanner(),
+
+                      SizedBox(
+                        height: ResponsiveUtils.getResponsiveSpacing(
+                          context,
+                          AppDimensions.spacing20,
+                        ),
+                      ),
+
+                      // Category Chips
+                      CategoryChips(
+                        categories: controller.categories,
+                        selectedCategory: controller.selectedCategory,
+                        onCategorySelected: controller.selectCategory,
+                      ),
+
+                      SizedBox(
+                        height: ResponsiveUtils.getResponsiveSpacing(
+                          context,
+                          AppDimensions.spacing20,
+                        ),
+                      ),
+
+                      // Products Grid with Loading/Error States
+                      _buildProductsContent(controller),
+
+                      // Bottom spacing for navigation bar
+                      SizedBox(
+                        height: ResponsiveUtils.getResponsiveSpacing(
+                          context,
+                          AppDimensions.spacing32,
+                        ),
+                      ),
+                    ],
                   ),
-
-                  SizedBox(
-                    height: ResponsiveUtils.getResponsiveSpacing(
-                      context,
-                      AppDimensions.spacing20,
-                    ),
-                  ),
-
-                  // Promotional Banner
-                  const PromotionalBanner(),
-
-                  SizedBox(
-                    height: ResponsiveUtils.getResponsiveSpacing(
-                      context,
-                      AppDimensions.spacing20,
-                    ),
-                  ),
-
-                  // Category Chips
-                  CategoryChips(
-                    categories: controller.categories,
-                    selectedCategory: controller.selectedCategory,
-                    onCategorySelected: controller.selectCategory,
-                  ),
-
-                  SizedBox(
-                    height: ResponsiveUtils.getResponsiveSpacing(
-                      context,
-                      AppDimensions.spacing20,
-                    ),
-                  ),
-
-                  // Products Grid with Loading/Error States
-                  _buildProductsContent(controller),
-
-                  // Bottom spacing for navigation bar
-                  SizedBox(
-                    height: ResponsiveUtils.getResponsiveSpacing(
-                      context,
-                      AppDimensions.spacing32,
-                    ),
+                );
+              },
+            ),
+            bottomNavigationBar: Container(
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurface : AppColors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.cardShadow,
+                    blurRadius: AppDimensions.blurRadiusSmall,
+                    offset: const Offset(0, -2),
                   ),
                 ],
               ),
-            );
-          },
-        ),
-        bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : AppColors.white,
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.cardShadow,
-                blurRadius: AppDimensions.blurRadiusSmall,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: ResponsiveUtils.getResponsiveSpacing(context, 20),
-                vertical: ResponsiveUtils.getResponsiveSpacing(context, 12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem(0, Icons.home, 'Home', isDark),
-                  _buildNavItem(1, Icons.favorite_border, 'Favorites', isDark),
-                  _buildNavItem(
-                      2, Icons.notifications_none, 'Notifications', isDark),
-                  _buildNavItem(3, Icons.person_outline, 'Profile', isDark),
-                ],
+              child: SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal:
+                        ResponsiveUtils.getResponsiveSpacing(context, 20),
+                    vertical: ResponsiveUtils.getResponsiveSpacing(context, 12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildNavItem(0, Icons.home, 'Home', isDark),
+                      _buildNavItem(
+                          1, Icons.favorite_border, 'Favorites', isDark),
+                      _buildNavItem(
+                          2, Icons.notifications_none, 'Notifications', isDark),
+                      _buildNavItem(3, Icons.person_outline, 'Profile', isDark),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -373,9 +423,14 @@ class _HomeScreenState extends State<HomeScreen> {
       confirmText: AppStrings.confirmLogout,
       cancelText: AppStrings.cancel,
       confirmColor: AppColors.warningRed,
-      onConfirm: () {
+      onConfirm: () async {
         Navigator.of(context).pop();
-        // Enhanced navigation back to login
+
+        // Logout using AuthController
+        final authController = AuthController();
+        await authController.logout();
+
+        // Navigate back to login
         AppRoutes.navigateToLogin(
           context,
           clearStack: true,

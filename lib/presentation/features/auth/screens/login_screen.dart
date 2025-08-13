@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:taskaia/core/managers/app_dialog.dart';
 import 'package:taskaia/core/theme/app_strings.dart';
 import 'package:taskaia/core/routing/app_routes.dart';
 import 'package:taskaia/presentation/features/home/view/home_screen.dart';
+import '../../../../core/di/injection.dart';
+import '../../../../core/services/auth_token_store.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/utils/responsive_utils.dart';
@@ -26,6 +29,19 @@ class LoginScreen extends StatelessWidget {
           transition: TransitionType.slideFromRight,
         );
       },
+    );
+  }
+
+  Future<void> _continueAsGuest(BuildContext context) async {
+    // Navigate to home as guest with fade transition
+    AppRoutes.navigateWithTransition(
+      context,
+      const HomeScreen(),
+      transition: TransitionType.fade,
+      duration: const Duration(
+        milliseconds: AppDimensions.animationVerySlow,
+      ),
+      clearStack: true,
     );
   }
 
@@ -124,17 +140,7 @@ class LoginScreen extends StatelessWidget {
               ),
               Center(
                 child: TextButton(
-                  onPressed: () {
-                    // Navigate to home as guest with fade transition
-                    AppRoutes.navigateWithTransition(
-                      context,
-                      const HomeScreen(),
-                      transition: TransitionType.fade,
-                      duration: const Duration(
-                        milliseconds: AppDimensions.animationVerySlow,
-                      ),
-                    );
-                  },
+                  onPressed: () => _continueAsGuest(context),
                   child: Text(
                     AppStrings.exploreAsGuest,
                     style: TextStyle(

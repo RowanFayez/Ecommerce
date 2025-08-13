@@ -8,9 +8,13 @@ import '../../../../core/services/local_user_store.dart';
 
 class AuthController {
   final ApiClient _apiClient;
+  final AuthTokenStore _authTokenStore;
 
-  AuthController({ApiClient? apiClient})
-      : _apiClient = apiClient ?? getIt<ApiClient>();
+  AuthController({
+    ApiClient? apiClient,
+    AuthTokenStore? authTokenStore,
+  })  : _apiClient = apiClient ?? getIt<ApiClient>(),
+        _authTokenStore = authTokenStore ?? getIt<AuthTokenStore>();
 
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
@@ -25,8 +29,8 @@ class AuthController {
       final response = await _apiClient.login(request);
       print('✅ Login successful! Token: ${response.token}');
 
-      // Persist token for authenticated requests
-      getIt<AuthTokenStore>().save(response.token);
+      // Persist token and update auth state
+      await _authTokenStore.save(response.token);
 
       return {
         'success': true,
@@ -101,7 +105,7 @@ class AuthController {
       if (match.id != -1) {
         final token =
             'local-demo-token-${match.username}-${DateTime.now().millisecondsSinceEpoch}';
-        getIt<AuthTokenStore>().save(token);
+        await _authTokenStore.save(token);
         return {
           'success': true,
           'token': token,
@@ -184,4 +188,13 @@ class AuthController {
       };
     }
   }
+
+  /// Logout user and clear all authentication data
+  Future<void> logout() async {
+    await _authTokenStore.clear();
+  }
+
+  /// Get current authentication state
+  bool get isAuthenticated => _authTokenStore.isAuthenticated;
+  String? get token => _authTokenStore.token;
 }
