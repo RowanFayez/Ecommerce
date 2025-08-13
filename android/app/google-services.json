@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "702700187745",
+    "project_id": "ecommerce-taskaia",
+    "storage_bucket": "ecommerce-taskaia.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:702700187745:android:9f04a5ed962dc08f92fa20",
+        "android_client_info": {
+          "package_name": "com.example.taskaia"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAo1FFu5YnKiigo1XVT0UaRFRSrkazyCjU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
