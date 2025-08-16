@@ -19,7 +19,7 @@ class ProductLoadInProgress extends ProductState {
 class ProductLoadSuccess extends ProductState {
   final List<Product> products;
   final List<String> categories; // includes 'all'
-  final String selectedCategory; // e.g., 'all' or a category
+  final String selectedCategory; 
 
   const ProductLoadSuccess({
     required this.products,
@@ -31,7 +31,8 @@ class ProductLoadSuccess extends ProductState {
     List<Product>? products,
     List<String>? categories,
     String? selectedCategory,
-  }) => ProductLoadSuccess(
+  }) =>
+      ProductLoadSuccess(
         products: products ?? this.products,
         categories: categories ?? this.categories,
         selectedCategory: selectedCategory ?? this.selectedCategory,

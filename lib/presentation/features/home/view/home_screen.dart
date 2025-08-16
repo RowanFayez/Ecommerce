@@ -39,7 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-  // No-op here; we'll dispatch init in BlocProvider's builder
+    // No-op here; we'll dispatch init in BlocProvider's builder
   }
 
   @override
@@ -89,192 +89,206 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Consumer<AuthTokenStore>(
         builder: (context, authTokenStore, child) {
           return BlocProvider(
-            create: (_) => getIt<ProductBloc>()..add(const ProductsInitialized()),
+            create: (_) =>
+                getIt<ProductBloc>()..add(const ProductsInitialized()),
             child: Scaffold(
-            backgroundColor:
-                isDark ? AppColors.darkBackground : AppColors.background,
-            appBar: AppBar(
               backgroundColor:
                   isDark ? AppColors.darkBackground : AppColors.background,
-              elevation: 0,
-              leading: Icon(
-                Icons.menu,
-                size: ResponsiveUtils.getResponsiveIconSize(
-                  context,
-                  AppDimensions.iconMedium,
+              appBar: AppBar(
+                backgroundColor:
+                    isDark ? AppColors.darkBackground : AppColors.background,
+                elevation: 0,
+                leading: Icon(
+                  Icons.menu,
+                  size: ResponsiveUtils.getResponsiveIconSize(
+                    context,
+                    AppDimensions.iconMedium,
+                  ),
+                  color: isDark ? AppColors.darkText : AppColors.black,
                 ),
-                color: isDark ? AppColors.darkText : AppColors.black,
-              ),
-              title: !authTokenStore.isAuthenticated
-                  ? Text(
-                      'Guest Mode',
-                      style: TextStyle(
-                        fontSize: AppDimensions.fontMedium,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w500,
+                title: !authTokenStore.isAuthenticated
+                    ? Text(
+                        'Guest Mode',
+                        style: TextStyle(
+                          fontSize: AppDimensions.fontMedium,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      )
+                    : null,
+                actions: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.shopping_cart,
+                      size: ResponsiveUtils.getResponsiveIconSize(
+                        context,
+                        AppDimensions.iconMedium,
                       ),
-                    )
-                  : null,
-              actions: [
-                IconButton(
-                  icon: Icon(
-                    Icons.shopping_cart,
-                    size: ResponsiveUtils.getResponsiveIconSize(
-                      context,
-                      AppDimensions.iconMedium,
+                      color: isDark ? AppColors.darkText : AppColors.black,
                     ),
-                    color: isDark ? AppColors.darkText : AppColors.black,
+                    tooltip: 'Cart',
+                    onPressed: _handleCartAccess,
                   ),
-                  tooltip: 'Cart',
-                  onPressed: _handleCartAccess,
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.person,
-                    size: ResponsiveUtils.getResponsiveIconSize(
-                      context,
-                      AppDimensions.iconMedium,
+                  IconButton(
+                    icon: Icon(
+                      Icons.person,
+                      size: ResponsiveUtils.getResponsiveIconSize(
+                        context,
+                        AppDimensions.iconMedium,
+                      ),
+                      color: isDark ? AppColors.darkText : AppColors.black,
                     ),
-                    color: isDark ? AppColors.darkText : AppColors.black,
+                    tooltip: 'Users',
+                    onPressed: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const UserScreen()));
+                    },
                   ),
-                  tooltip: 'Users',
-                  onPressed: () {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const UserScreen()));
-                  },
-                ),
-                Switch(
-                  value: _themeManager.isDarkMode,
-                  onChanged: (value) {
-                    _themeManager.toggleTheme();
-                    setState(() {});
-                  },
-                  activeColor: AppColors.primary,
-                ),
-                IconButton(
-                  icon: Icon(
-                    !authTokenStore.isAuthenticated
-                        ? Icons.login
-                        : Icons.logout,
-                    size: ResponsiveUtils.getResponsiveIconSize(
-                      context,
-                      AppDimensions.iconMedium,
+                  Switch(
+                    value: _themeManager.isDarkMode,
+                    onChanged: (value) {
+                      _themeManager.toggleTheme();
+                      setState(() {});
+                    },
+                    activeColor: AppColors.primary,
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      !authTokenStore.isAuthenticated
+                          ? Icons.login
+                          : Icons.logout,
+                      size: ResponsiveUtils.getResponsiveIconSize(
+                        context,
+                        AppDimensions.iconMedium,
+                      ),
+                      color: isDark ? AppColors.darkText : AppColors.black,
                     ),
-                    color: isDark ? AppColors.darkText : AppColors.black,
-                  ),
-                  onPressed: !authTokenStore.isAuthenticated
-                      ? () => _showLoginRequiredDialog()
-                      : _showLogoutConfirmation,
-                  tooltip: !authTokenStore.isAuthenticated
-                      ? 'Login'
-                      : AppStrings.logout,
-                ),
-              ],
-            ),
-            body: BlocBuilder<ProductBloc, ProductState>(
-              builder: (context, state) {
-                return SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const HomeHeader(),
-
-                      // Search Bar
-                      SearchBarWidget(
-                        controller: _searchController,
-                        onSearch: (query) {
-                          // TODO: Implement search functionality
-                          print('Searching for: $query');
-                        },
-                      ),
-
-                      SizedBox(
-                        height: ResponsiveUtils.getResponsiveSpacing(
-                          context,
-                          AppDimensions.spacing20,
-                        ),
-                      ),
-
-                      // Promotional Banner
-                      const PromotionalBanner(),
-
-                      SizedBox(
-                        height: ResponsiveUtils.getResponsiveSpacing(
-                          context,
-                          AppDimensions.spacing20,
-                        ),
-                      ),
-
-                      // Category Chips
-                      BlocBuilder<ProductBloc, ProductState>(
-                        buildWhen: (p, c) => c is ProductLoadSuccess || c is ProductLoadInProgress || c is ProductLoadFailure,
-                        builder: (context, state) {
-                          if (state is ProductLoadSuccess) {
-                            return CategoryChips(
-                              categories: state.categories,
-                              selectedCategory: state.selectedCategory,
-                              onCategorySelected: (categ) => context.read<ProductBloc>().add(CategorySelected(categ)),
-                            );
-                          }
-                          // Loading placeholder for categories
-                          return const SizedBox(height: 80, child: Center(child: CircularProgressIndicator(color: AppColors.primary)));
-                        },
-                      ),
-
-                      SizedBox(
-                        height: ResponsiveUtils.getResponsiveSpacing(
-                          context,
-                          AppDimensions.spacing20,
-                        ),
-                      ),
-
-                      // Products Grid with Loading/Error States
-                      _buildProductsContent(state),
-
-                      // Bottom spacing for navigation bar
-                      SizedBox(
-                        height: ResponsiveUtils.getResponsiveSpacing(
-                          context,
-                          AppDimensions.spacing32,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            bottomNavigationBar: Container(
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : AppColors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.cardShadow,
-                    blurRadius: AppDimensions.blurRadiusSmall,
-                    offset: const Offset(0, -2),
+                    onPressed: !authTokenStore.isAuthenticated
+                        ? () => _showLoginRequiredDialog()
+                        : _showLogoutConfirmation,
+                    tooltip: !authTokenStore.isAuthenticated
+                        ? 'Login'
+                        : AppStrings.logout,
                   ),
                 ],
               ),
-              child: SafeArea(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal:
-                        ResponsiveUtils.getResponsiveSpacing(context, 20),
-                    vertical: ResponsiveUtils.getResponsiveSpacing(context, 12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildNavItem(0, Icons.home, 'Home', isDark),
-                      _buildNavItem(
-                          1, Icons.favorite_border, 'Favorites', isDark),
-                      _buildNavItem(
-                          2, Icons.notifications_none, 'Notifications', isDark),
-                      _buildNavItem(3, Icons.person_outline, 'Profile', isDark),
-                    ],
+              body: BlocBuilder<ProductBloc, ProductState>(
+                builder: (context, state) {
+                  return SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const HomeHeader(),
+
+                        // Search Bar
+                        SearchBarWidget(
+                          controller: _searchController,
+                          onSearch: (query) {
+                            // TODO: Implement search functionality
+                            print('Searching for: $query');
+                          },
+                        ),
+
+                        SizedBox(
+                          height: ResponsiveUtils.getResponsiveSpacing(
+                            context,
+                            AppDimensions.spacing20,
+                          ),
+                        ),
+
+                        // Promotional Banner
+                        const PromotionalBanner(),
+
+                        SizedBox(
+                          height: ResponsiveUtils.getResponsiveSpacing(
+                            context,
+                            AppDimensions.spacing20,
+                          ),
+                        ),
+
+                        // Category Chips
+                        BlocBuilder<ProductBloc, ProductState>(
+                          buildWhen: (p, c) =>
+                              c is ProductLoadSuccess ||
+                              c is ProductLoadInProgress ||
+                              c is ProductLoadFailure,
+                          builder: (context, state) {
+                            if (state is ProductLoadSuccess) {
+                              return CategoryChips(
+                                categories: state.categories,
+                                selectedCategory: state.selectedCategory,
+                                onCategorySelected: (categ) => context
+                                    .read<ProductBloc>()
+                                    .add(CategorySelected(categ)),
+                              );
+                            }
+                            // Loading placeholder for categories
+                            return const SizedBox(
+                                height: 80,
+                                child: Center(
+                                    child: CircularProgressIndicator(
+                                        color: AppColors.primary)));
+                          },
+                        ),
+
+                        SizedBox(
+                          height: ResponsiveUtils.getResponsiveSpacing(
+                            context,
+                            AppDimensions.spacing20,
+                          ),
+                        ),
+
+                        // Products Grid with Loading/Error States
+                        _buildProductsContent(state),
+
+                        // Bottom spacing for navigation bar
+                        SizedBox(
+                          height: ResponsiveUtils.getResponsiveSpacing(
+                            context,
+                            AppDimensions.spacing32,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              bottomNavigationBar: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface : AppColors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.cardShadow,
+                      blurRadius: AppDimensions.blurRadiusSmall,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal:
+                          ResponsiveUtils.getResponsiveSpacing(context, 20),
+                      vertical:
+                          ResponsiveUtils.getResponsiveSpacing(context, 12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildNavItem(0, Icons.home, 'Home', isDark),
+                        _buildNavItem(
+                            1, Icons.favorite_border, 'Favorites', isDark),
+                        _buildNavItem(2, Icons.notifications_none,
+                            'Notifications', isDark),
+                        _buildNavItem(
+                            3, Icons.person_outline, 'Profile', isDark),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
             ),
           );
         },
@@ -337,9 +351,8 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (state is ProductLoadFailure) {
-      final isOfflineNoCache = state.message
-          .toLowerCase()
-          .contains('connect to wi');
+      final isOfflineNoCache =
+          state.message.toLowerCase().contains('connect to wi');
       return Container(
         height: 400,
         child: Center(
@@ -349,11 +362,15 @@ class _HomeScreenState extends State<HomeScreen> {
               Icon(
                 isOfflineNoCache ? Icons.wifi_off_rounded : Icons.error_outline,
                 size: 64,
-                color: isOfflineNoCache ? AppColors.textSecondary : AppColors.warningRed,
+                color: isOfflineNoCache
+                    ? AppColors.textSecondary
+                    : AppColors.warningRed,
               ),
               SizedBox(height: AppDimensions.spacing16),
               Text(
-                isOfflineNoCache ? 'No internet connection' : 'Failed to load products',
+                isOfflineNoCache
+                    ? 'No internet connection'
+                    : 'Failed to load products',
                 style: TextStyle(
                   fontSize: AppDimensions.fontLarge,
                   fontWeight: FontWeight.bold,
@@ -370,7 +387,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SizedBox(height: AppDimensions.spacing24),
               ElevatedButton(
-                onPressed: () => context.read<ProductBloc>().add(const ProductsRetryRequested()),
+                onPressed: () => context
+                    .read<ProductBloc>()
+                    .add(const ProductsRetryRequested()),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                 ),
