@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/widgets/app_button.dart';
-import '../../../data/datasources/api_client.dart';
-import '../../../data/models/cart.dart';
-import '../../../data/models/product.dart';
+import 'cubit/cart_cubit.dart';
+import 'cubit/cart_state.dart';
 import 'cart_item_tile.dart';
 
 class CartScreen extends StatelessWidget {
@@ -14,140 +14,88 @@ class CartScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cart'),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: Theme.of(context).brightness == Brightness.dark
-            ? AppColors.darkBackground
-            : AppColors.background,
-      ),
-      backgroundColor: Theme.of(context).brightness == Brightness.dark
-          ? AppColors.darkBackground
-          : AppColors.background,
-      body: FutureBuilder<_CartPageData>(
-        future: _loadCartPageData(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return _ErrorView(
-                error: snapshot.error.toString(),
-                onRetry: () => _retry(context));
-          }
-          final data = snapshot.data;
-          if (data == null || data.items.isEmpty) {
-            return const Center(child: Text('No carts found'));
-          }
-          return Column(
-            children: [
-              Expanded(
-                child: ListView.separated(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  itemCount: data.items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 6),
-                  itemBuilder: (context, index) {
-                    final item = data.items[index];
-                    return CartItemTile(
-                      imageUrl: item.imageUrl,
-                      title: item.title,
-                      sizeLabel: item.sizeLabel,
-                      price: item.price,
-                      quantity: item.quantity,
-                      onIncrease: null,
-                      onDecrease: null,
-                      onDelete: null,
-                    );
-                  },
-                ),
-              ),
-              _TotalsCard(subtotal: data.subtotal, shipping: 5.0),
-              const SizedBox(height: 12),
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: AppButton(
-                  label: 'Checkout  →',
-                  isFullWidth: true,
-                  backgroundColor: AppColors.cartButtonBackground,
-                  textColor: AppColors.cartButtonIcon,
-                  onPressed: () {},
-                ),
-              ),
-            ],
-          );
-        },
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return BlocProvider(
+      create: (_) => getIt<CartCubit>()..load(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Cart'),
+          centerTitle: true,
+          elevation: 0,
+          backgroundColor:
+              isDark ? AppColors.darkBackground : AppColors.background,
+        ),
+        backgroundColor:
+            isDark ? AppColors.darkBackground : AppColors.background,
+        body: BlocBuilder<CartCubit, CartState>(
+          builder: (context, state) {
+            if (state is CartLoading || state is CartInitial) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (state is CartError) {
+              return _ErrorView(
+                error: state.message,
+                onRetry: () => context.read<CartCubit>().load(),
+              );
+            }
+            if (state is CartLoaded) {
+              if (state.items.isEmpty) {
+                return const Center(child: Text('Your cart is empty'));
+              }
+              return Column(
+                children: [
+                  Expanded(
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      itemCount: state.items.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 6),
+                      itemBuilder: (context, index) {
+                        final item = state.items[index];
+                        return CartItemTile(
+                          imageUrl: item.imageUrl,
+                          title: item.title,
+                          sizeLabel: item.sizeLabel,
+                          price: item.price,
+                          quantity: item.quantity,
+                          onIncrease: () => context
+                              .read<CartCubit>()
+                              .increment(item.productId),
+                          onDecrease: () => context
+                              .read<CartCubit>()
+                              .decrement(item.productId),
+                          onDelete: () =>
+                              context.read<CartCubit>().remove(item.productId),
+                        );
+                      },
+                    ),
+                  ),
+                  _TotalsCard(
+                      subtotal: state.subtotal, shipping: state.shipping),
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: AppButton(
+                      label: 'Checkout  →',
+                      isFullWidth: true,
+                      backgroundColor: AppColors.cartButtonBackground,
+                      textColor: AppColors.cartButtonIcon,
+                      onPressed: () {},
+                    ),
+                  ),
+                ],
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        ),
       ),
     );
   }
-
-  Future<void> _retry(BuildContext context) async {
-    // Trigger a rebuild
-    (context as Element).markNeedsBuild();
-  }
 }
 
-class _CartItemData {
-  final String title;
-  final String imageUrl;
-  final double price;
-  final int quantity;
-  final String sizeLabel;
-  const _CartItemData({
-    required this.title,
-    required this.imageUrl,
-    required this.price,
-    required this.quantity,
-    required this.sizeLabel,
-  });
-}
-
-class _CartPageData {
-  final List<_CartItemData> items;
-  final double subtotal;
-  const _CartPageData(this.items, this.subtotal);
-}
-
-Future<_CartPageData> _loadCartPageData() async {
-  final api = getIt<ApiClient>();
-  final List<Cart> carts = await api.getCarts();
-
-  // Aggregate all products across all carts
-  final Map<int, int> productIdToQuantity = {};
-  for (final cart in carts) {
-    for (final cp in cart.products) {
-      productIdToQuantity.update(cp.productId, (value) => value + cp.quantity,
-          ifAbsent: () => cp.quantity);
-    }
-  }
-
-  // Fetch unique products in parallel
-  final List<int> productIds = productIdToQuantity.keys.toList();
-  final futures = productIds.map((id) => api.getProduct(id)).toList();
-  final List<Product> products = await Future.wait(futures);
-
-  // Map products to UI items
-  final sizes = ['S', 'M', 'L', 'XL'];
-  final List<_CartItemData> items = [];
-  double subtotal = 0;
-  for (int i = 0; i < products.length; i++) {
-    final p = products[i];
-    final qty = productIdToQuantity[p.id] ?? 0;
-    subtotal += p.price * qty;
-    items.add(_CartItemData(
-      title: p.title,
-      imageUrl: p.image,
-      price: p.price,
-      quantity: qty,
-      sizeLabel: sizes[i % sizes.length],
-    ));
-  }
-
-  return _CartPageData(items, subtotal);
-}
+// Totals card reused with Cubit values
 
 class _TotalsCard extends StatelessWidget {
   final double subtotal;

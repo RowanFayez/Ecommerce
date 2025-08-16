@@ -22,6 +22,8 @@ import 'package:taskaia/data/repositories/cached_product_repository.dart'
     as _i508;
 import 'package:taskaia/data/repositories/cart_repository.dart' as _i923;
 import 'package:taskaia/data/repositories/product_repository.dart' as _i31;
+import 'package:taskaia/presentation/features/cart/cubit/cart_cubit.dart'
+    as _i545;
 import 'package:taskaia/presentation/features/home/bloc/product_bloc.dart'
     as _i104;
 import 'package:taskaia/presentation/features/home/controller/home_controller.dart'
@@ -59,6 +61,7 @@ extension GetItInjectableX on _i174.GetIt {
             ));
     gh.factory<_i31.ApiProductRepository>(
         () => _i31.ApiProductRepository(gh<_i167.ApiClient>()));
+    gh.factory<_i545.CartCubit>(() => _i545.CartCubit(gh<_i167.ApiClient>()));
     gh.factory<_i104.ProductBloc>(
         () => _i104.ProductBloc(gh<_i31.ProductRepository>()));
     gh.factory<_i357.HomeController>(
