@@ -89,12 +89,15 @@ class _CachedImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-  final manager = DefaultCacheManager();
+    final manager = DefaultCacheManager();
     bool isValidHttpUrl(String u) {
       if (u.isEmpty) return false;
       final uri = Uri.tryParse(u);
-      return uri != null && (uri.isScheme('http') || uri.isScheme('https')) && uri.host.isNotEmpty;
+      return uri != null &&
+          (uri.isScheme('http') || uri.isScheme('https')) &&
+          uri.host.isNotEmpty;
     }
+
     if (!isValidHttpUrl(url)) {
       return Container(
         color: AppColors.productImagePlaceholder,
