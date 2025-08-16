@@ -13,6 +13,7 @@ import 'package:dio/dio.dart' as _i361;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:taskaia/core/di/injection.dart' as _i598;
+import 'package:taskaia/core/hive/cart_local_cache.dart' as _i341;
 import 'package:taskaia/core/hive/product_local_cache.dart' as _i942;
 import 'package:taskaia/core/network/network_info.dart' as _i250;
 import 'package:taskaia/core/services/auth_token_store.dart' as _i742;
@@ -45,6 +46,7 @@ extension GetItInjectableX on _i174.GetIt {
     gh.singleton<_i895.Connectivity>(() => registerModule.connectivity);
     gh.singleton<_i942.ProductLocalCache>(
         () => registerModule.productLocalCache);
+    gh.singleton<_i341.CartLocalCache>(() => registerModule.cartLocalCache);
     gh.singleton<_i742.AuthTokenStore>(() => registerModule.authTokenStore);
     gh.singleton<_i341.LocalUserStore>(() => registerModule.localUserStore);
     gh.singleton<_i250.INetworkInfo>(
@@ -61,7 +63,10 @@ extension GetItInjectableX on _i174.GetIt {
             ));
     gh.factory<_i31.ApiProductRepository>(
         () => _i31.ApiProductRepository(gh<_i167.ApiClient>()));
-    gh.factory<_i545.CartCubit>(() => _i545.CartCubit(gh<_i167.ApiClient>()));
+    gh.factory<_i545.CartCubit>(() => _i545.CartCubit(
+          gh<_i167.ApiClient>(),
+          gh<_i341.CartLocalCache>(),
+        ));
     gh.factory<_i104.ProductBloc>(
         () => _i104.ProductBloc(gh<_i31.ProductRepository>()));
     gh.factory<_i357.HomeController>(

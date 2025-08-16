@@ -10,6 +10,7 @@ import '../services/auth_token_store.dart';
 import '../services/local_user_store.dart';
 import '../network/network_info.dart';
 import '../hive/product_local_cache.dart';
+import '../hive/cart_local_cache.dart';
 
 import 'injection.config.dart';
 
@@ -56,6 +57,9 @@ abstract class RegisterModule {
 
   @singleton
   ProductLocalCache get productLocalCache => ProductLocalCache();
+
+  @singleton
+  CartLocalCache get cartLocalCache => CartLocalCache();
 
   @singleton
   AuthTokenStore get authTokenStore => AuthTokenStore();

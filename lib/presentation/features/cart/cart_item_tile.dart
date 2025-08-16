@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
+import '../../features/product/widgets/reusable_product_image.dart';
 
 class CartItemTile extends StatelessWidget {
   final String imageUrl;
@@ -45,20 +46,13 @@ class CartItemTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              imageUrl,
-              width: 72,
-              height: 72,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                width: 72,
-                height: 72,
-                color: AppColors.productImagePlaceholder,
-                child: const Icon(Icons.image_not_supported),
-              ),
-            ),
+          ReusableProductImage(
+            imageUrl: imageUrl,
+            heroTag: 'cart-$imageUrl',
+            width: 72,
+            height: 72,
+            borderRadius: 12,
+            showShadow: false,
           ),
           const SizedBox(width: 12),
           Expanded(

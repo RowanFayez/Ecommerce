@@ -1,20 +1,40 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import '../../../../core/hive/cart_local_cache.dart';
 import '../../../../data/datasources/api_client.dart';
 import '../../../../data/models/cart.dart';
-import '../../../../data/models/product.dart';
+import '../../../../data/models/cart_item_hive.dart';
 import 'cart_state.dart';
 
 @injectable
 class CartCubit extends Cubit<CartState> {
   final ApiClient _apiClient;
+  final CartLocalCache _local;
   static const double _shippingFlat = 5.0;
 
-  CartCubit(this._apiClient) : super(const CartInitial());
+  CartCubit(this._apiClient, this._local) : super(const CartInitial());
 
   Future<void> load() async {
     emit(const CartLoading());
     try {
+      // 1) Show local cache immediately if present
+  final cached = _local.getItems();
+  final bool hadCached = cached.isNotEmpty;
+  if (hadCached) {
+        final items = cached
+            .map((e) => CartItem(
+                  productId: e.productId,
+                  title: e.title,
+                  imageUrl: e.imageUrl,
+                  price: e.price,
+                  quantity: e.quantity,
+                  sizeLabel: e.sizeLabel,
+                ))
+            .toList();
+        _recalculateAndEmit(items);
+      }
+
+      // 2) Refresh from remote when possible
       final List<Cart> carts = await _apiClient.getCarts();
       final Map<int, int> productIdToQuantity = {};
       for (final cart in carts) {
@@ -28,8 +48,7 @@ class CartCubit extends Cubit<CartState> {
       }
 
       final ids = productIdToQuantity.keys.toList();
-      final futures = ids.map((id) => _apiClient.getProduct(id)).toList();
-      final List<Product> products = await Future.wait(futures);
+      final products = await Future.wait(ids.map((id) => _apiClient.getProduct(id)));
 
       final sizes = ['S', 'M', 'L', 'XL'];
       double subtotal = 0;
@@ -48,6 +67,18 @@ class CartCubit extends Cubit<CartState> {
         ));
       }
 
+      // Persist refreshed list
+      await _local.saveItems(items
+          .map((e) => CartItemHive(
+                productId: e.productId,
+                title: e.title,
+                imageUrl: e.imageUrl,
+                price: e.price,
+                quantity: e.quantity,
+                sizeLabel: e.sizeLabel,
+              ))
+          .toList());
+
       emit(CartLoaded(
         items: items,
         subtotal: subtotal,
@@ -55,7 +86,9 @@ class CartCubit extends Cubit<CartState> {
         total: subtotal + _shippingFlat,
       ));
     } catch (e) {
-      emit(CartError(e.toString()));
+      // If we already showed cached, keep it; otherwise show friendly offline message
+      if (state is CartLoaded) return;
+      emit(const CartError('No internet connection. Connect to load your cart.'));
     }
   }
 
@@ -68,6 +101,7 @@ class CartCubit extends Cubit<CartState> {
             : it)
         .toList();
     _recalculateAndEmit(items);
+    _persist(items);
   }
 
   void decrement(int productId) {
@@ -81,6 +115,7 @@ class CartCubit extends Cubit<CartState> {
       return it;
     }).toList();
     _recalculateAndEmit(items);
+    _persist(items);
   }
 
   void remove(int productId) {
@@ -88,11 +123,12 @@ class CartCubit extends Cubit<CartState> {
     if (s is! CartLoaded) return;
     final items = s.items.where((it) => it.productId != productId).toList();
     _recalculateAndEmit(items);
+    _persist(items);
   }
 
   void clear() {
-    emit(const CartLoaded(
-        items: [], subtotal: 0, shipping: _shippingFlat, total: _shippingFlat));
+    emit(CartLoaded(items: const [], subtotal: 0, shipping: _shippingFlat, total: _shippingFlat));
+    _local.clear();
   }
 
   void _recalculateAndEmit(List<CartItem> items) {
@@ -106,5 +142,18 @@ class CartCubit extends Cubit<CartState> {
       shipping: _shippingFlat,
       total: subtotal + _shippingFlat,
     ));
+  }
+
+  Future<void> _persist(List<CartItem> items) async {
+    await _local.saveItems(items
+        .map((e) => CartItemHive(
+              productId: e.productId,
+              title: e.title,
+              imageUrl: e.imageUrl,
+              price: e.price,
+              quantity: e.quantity,
+              sizeLabel: e.sizeLabel,
+            ))
+        .toList());
   }
 }

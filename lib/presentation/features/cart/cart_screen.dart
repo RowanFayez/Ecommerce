@@ -5,6 +5,8 @@ import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/widgets/app_button.dart';
+import '../../../core/services/auth_token_store.dart';
+import '../../../core/network/network_info.dart';
 import 'cubit/cart_cubit.dart';
 import 'cubit/cart_state.dart';
 import 'cart_item_tile.dart';
@@ -76,12 +78,36 @@ class CartScreen extends StatelessWidget {
                   Padding(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: AppButton(
-                      label: 'Checkout  →',
-                      isFullWidth: true,
-                      backgroundColor: AppColors.cartButtonBackground,
-                      textColor: AppColors.cartButtonIcon,
-                      onPressed: () {},
+                    child: FutureBuilder<bool>(
+                      future: getIt<INetworkInfo>().isConnected,
+                      builder: (context, snap) {
+                        final online = snap.data ?? false;
+                        final isAuthed = context.read<AuthTokenStore>().isAuthenticated;
+                        final canCheckout = online && isAuthed;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            AppButton(
+                              label: 'Checkout  →',
+                              isFullWidth: true,
+                              backgroundColor: AppColors.cartButtonBackground,
+                              textColor: AppColors.cartButtonIcon,
+                              onPressed: canCheckout ? () {} : null,
+                            ),
+                            if (!canCheckout)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  !online
+                                      ? 'You are offline. Connect to complete checkout.'
+                                      : 'Please log in to checkout.',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ],
