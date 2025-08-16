@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:taskaia/data/models/product.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/utils/responsive_utils.dart';
-import 'package:taskaia/data/models/product.dart';
 import 'notched_bottom_clipper.dart';
 
 class ProductImageSection extends StatelessWidget {
@@ -20,23 +23,12 @@ class ProductImageSection extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final notchRadius = ResponsiveUtils.getResponsiveSpacing(context, 28);
     final cartInnerSize = ResponsiveUtils.getResponsiveSpacing(context, 32);
-    final cornerRadius = ResponsiveUtils.getResponsiveSpacing(
-        context, AppDimensions.radiusLarge);
-
-    // Debug: Print product image information
-    print('ProductImageSection: Product ID: ${product.id}');
-    print('ProductImageSection: Product Title: ${product.title}');
-    print('ProductImageSection: Product Category: ${product.category}');
-    print('ProductImageSection: Product Image URL: ${product.imageUrl}');
-    print(
-        'ProductImageSection: Product Image URL length: ${product.imageUrl.length}');
-    print(
-        'ProductImageSection: Product Image URL is empty: ${product.imageUrl.isEmpty}');
+    final cornerRadius =
+        ResponsiveUtils.getResponsiveSpacing(context, AppDimensions.radiusLarge);
 
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Product Image with Custom Clipper that subtracts a bottom-center hill/oval
         ClipPath(
           clipper: NotchedBottomClipper(
             cornerRadius: cornerRadius,
@@ -48,127 +40,7 @@ class ProductImageSection extends StatelessWidget {
           child: SizedBox.expand(
             child: Hero(
               tag: 'product-image-${product.id}',
-              child: Image.network(
-                product.imageUrl,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  print(
-                      'ProductImageSection: Loading image for product ${product.id} - ${loadingProgress.expectedTotalBytes != null ? '${loadingProgress.cumulativeBytesLoaded}/${loadingProgress.expectedTotalBytes}' : 'Unknown size'}');
-                  return Container(
-                    color: isDark
-                        ? AppColors.darkSurface
-                        : AppColors.productImagePlaceholder,
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: ResponsiveUtils.getResponsiveSpacing(
-                                context, AppDimensions.iconMedium),
-                            height: ResponsiveUtils.getResponsiveSpacing(
-                                context, AppDimensions.iconMedium),
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.primary),
-                            ),
-                          ),
-                          SizedBox(
-                              height: ResponsiveUtils.getResponsiveSpacing(
-                                  context, 8)),
-                          Text(
-                            'Loading...',
-                            style: TextStyle(
-                              fontSize: ResponsiveUtils.getResponsiveFontSize(
-                                context,
-                                AppDimensions.fontSmall,
-                              ),
-                              color: isDark
-                                  ? AppColors.darkTextSecondary
-                                  : AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  print(
-                      'ProductImageSection: Error loading image for product ${product.id}');
-                  print('ProductImageSection: Error: $error');
-                  print('ProductImageSection: Image URL: ${product.imageUrl}');
-
-                  return Container(
-                    color: isDark
-                        ? AppColors.darkSurface
-                        : AppColors.productImagePlaceholder,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.image_not_supported_outlined,
-                          size: ResponsiveUtils.getResponsiveSpacing(
-                              context, AppDimensions.iconXLarge),
-                          color: isDark
-                              ? AppColors.darkTextSecondary
-                              : AppColors.textLight,
-                        ),
-                        SizedBox(
-                            height: ResponsiveUtils.getResponsiveSpacing(
-                                context, 8)),
-                        Text(
-                          'Image not available',
-                          style: TextStyle(
-                            fontSize: ResponsiveUtils.getResponsiveFontSize(
-                              context,
-                              AppDimensions.fontSmall,
-                            ),
-                            color: isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.textSecondary,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(
-                            height: ResponsiveUtils.getResponsiveSpacing(
-                                context, 8)),
-                        // Show category info
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: ResponsiveUtils.getResponsiveSpacing(
-                                context, 12),
-                            vertical: ResponsiveUtils.getResponsiveSpacing(
-                                context, 4),
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? AppColors.darkCard
-                                : AppColors.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(
-                              ResponsiveUtils.getResponsiveSpacing(context, 12),
-                            ),
-                          ),
-                          child: Text(
-                            product.category,
-                            style: TextStyle(
-                              fontSize: ResponsiveUtils.getResponsiveFontSize(
-                                context,
-                                AppDimensions.fontSmall,
-                              ),
-                              color: isDark
-                                  ? AppColors.darkTextSecondary
-                                  : AppColors.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+              child: _buildCachedImage(context, isDark),
             ),
           ),
         ),
@@ -183,15 +55,15 @@ class ProductImageSection extends StatelessWidget {
             width: ResponsiveUtils.getResponsiveSpacing(context, 36),
             height: ResponsiveUtils.getResponsiveSpacing(context, 36),
             decoration: BoxDecoration(
-              color: (isDark ? AppColors.darkCard : AppColors.white)
-                  .withOpacity(0.9),
+              color:
+                  (isDark ? AppColors.darkCard : AppColors.white).withOpacity(0.9),
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
                   color: AppColors.cardShadow.withOpacity(0.2),
                   blurRadius: ResponsiveUtils.getResponsiveSpacing(context, 8),
-                  offset: Offset(
-                      0, ResponsiveUtils.getResponsiveSpacing(context, 2)),
+                  offset:
+                      Offset(0, ResponsiveUtils.getResponsiveSpacing(context, 2)),
                 ),
               ],
             ),
@@ -199,13 +71,13 @@ class ProductImageSection extends StatelessWidget {
               Icons.favorite_outline,
               size: ResponsiveUtils.getResponsiveSpacing(
                   context, AppDimensions.iconSmall),
-              color: isDark
-                  ? AppColors.darkTextSecondary
-                  : AppColors.textSecondary,
+              color:
+                  isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
             ),
           ),
         ),
-        // Small dark cart icon centered inside the notch, overlapping image + card
+
+        // Small dark cart icon centered at notch
         Positioned(
           bottom: -ResponsiveUtils.getResponsiveSpacing(
               context, (cartInnerSize / 2) - 2),
@@ -225,8 +97,8 @@ class ProductImageSection extends StatelessWidget {
                       color: AppColors.cardShadow.withOpacity(0.35),
                       blurRadius:
                           ResponsiveUtils.getResponsiveSpacing(context, 8),
-                      offset: Offset(
-                          0, ResponsiveUtils.getResponsiveSpacing(context, 3)),
+                      offset:
+                          Offset(0, ResponsiveUtils.getResponsiveSpacing(context, 3)),
                     ),
                   ],
                 ),
@@ -244,20 +116,91 @@ class ProductImageSection extends StatelessWidget {
     );
   }
 
+  Widget _buildCachedImage(BuildContext context, bool isDark) {
+    final manager = DefaultCacheManager();
+    final url = product.image;
+
+    bool isValidHttpUrl(String u) {
+      if (u.isEmpty) return false;
+      final uri = Uri.tryParse(u);
+      return uri != null && (uri.isScheme('http') || uri.isScheme('https')) && uri.host.isNotEmpty;
+    }
+
+  if (!isValidHttpUrl(url)) {
+      return _errorPlaceholder(context, isDark);
+    }
+
+    return FutureBuilder<FileInfo?>(
+      future: manager.getFileFromCache(url),
+      builder: (context, snapshot) {
+        final info = snapshot.data;
+        if (!kIsWeb && info != null && info.file.existsSync()) {
+          return Image.file(info.file, fit: BoxFit.cover);
+        }
+        if (kIsWeb) {
+          // On web, prefer browser caching with Image.network
+          return Image.network(url, fit: BoxFit.cover);
+        }
+        // Not cached: stream and show progress or errors
+  return StreamBuilder<FileResponse>(
+          stream: manager.getFileStream(url, withProgress: true),
+          builder: (context, snap) {
+            final event = snap.data;
+            if (event is FileInfo) {
+              return kIsWeb
+                  ? Image.network(url, fit: BoxFit.cover)
+                  : Image.file(event.file, fit: BoxFit.cover);
+            }
+            if (event is DownloadProgress) {
+              return _loadingPlaceholder(context, isDark);
+            }
+            if (snap.hasError) {
+              return _errorPlaceholder(context, isDark);
+            }
+            return _loadingPlaceholder(context, isDark);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _loadingPlaceholder(BuildContext context, bool isDark) {
+    return Container(
+      color: isDark ? AppColors.darkSurface : AppColors.productImagePlaceholder,
+      child: Center(
+        child: SizedBox(
+          width: ResponsiveUtils.getResponsiveSpacing(
+              context, AppDimensions.iconMedium),
+          height: ResponsiveUtils.getResponsiveSpacing(
+              context, AppDimensions.iconMedium),
+          child: const CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+    );
+  }
+
+  Widget _errorPlaceholder(BuildContext context, bool isDark) {
+    return Container(
+      color: isDark ? AppColors.darkSurface : AppColors.productImagePlaceholder,
+      child: Icon(
+        Icons.image_not_supported_outlined,
+        size:
+            ResponsiveUtils.getResponsiveSpacing(context, AppDimensions.iconXLarge),
+        color: isDark ? AppColors.darkTextSecondary : AppColors.textLight,
+      ),
+    );
+  }
+
   void _handleAddToCart(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            Icon(
-              Icons.check_circle_outline,
-              color: AppColors.white,
-              size: ResponsiveUtils.getResponsiveSpacing(
-                  context, AppDimensions.iconSmall),
-            ),
+            const Icon(Icons.check_circle_outline, color: Colors.white),
             SizedBox(
-                width: ResponsiveUtils.getResponsiveSpacing(
-                    context, AppDimensions.spacing8)),
+              width: ResponsiveUtils.getResponsiveSpacing(
+                  context, AppDimensions.spacing8),
+            ),
             Expanded(
               child: Text(
                 '${product.title} added to cart!',

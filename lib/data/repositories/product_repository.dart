@@ -9,7 +9,7 @@ abstract class ProductRepository {
   Future<List<String>> getCategories();
 }
 
-@Injectable(as: ProductRepository)
+@injectable
 class ApiProductRepository implements ProductRepository {
   final ApiClient _apiClient;
 

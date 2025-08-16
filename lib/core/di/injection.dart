@@ -1,12 +1,15 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../../data/datasources/api_client.dart';
 // import '../../data/repositories/product_repository.dart';
 // import 'package:taskaia/presentation/features/home/controller/home_controller.dart';
 import '../services/auth_token_store.dart';
 import '../services/local_user_store.dart';
+import '../network/network_info.dart';
+import '../hive/product_local_cache.dart';
 
 import 'injection.config.dart';
 
@@ -43,6 +46,16 @@ abstract class RegisterModule {
 
   @singleton
   ApiClient apiClient(Dio dio) => ApiClient(dio);
+
+  @singleton
+  Connectivity get connectivity => Connectivity();
+
+  @singleton
+  INetworkInfo networkInfo(Connectivity connectivity) =>
+      NetworkInfo(connectivity: connectivity);
+
+  @singleton
+  ProductLocalCache get productLocalCache => ProductLocalCache();
 
   @singleton
   AuthTokenStore get authTokenStore => AuthTokenStore();

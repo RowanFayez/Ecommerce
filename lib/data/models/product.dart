@@ -1,15 +1,24 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:hive/hive.dart';
 
 part 'product.g.dart';
 
+@HiveType(typeId: 0)
 @JsonSerializable()
 class Product {
+  @HiveField(0)
   final int id;
+  @HiveField(1)
   final String title;
+  @HiveField(2)
   final double price;
+  @HiveField(3)
   final String description;
+  @HiveField(4)
   final String category;
+  @HiveField(5)
   final String image;
+  @HiveField(6)
   final Rating rating;
 
   const Product({
@@ -76,9 +85,12 @@ class Product {
   }
 }
 
+@HiveType(typeId: 1)
 @JsonSerializable()
 class Rating {
+  @HiveField(0)
   final double rate;
+  @HiveField(1)
   final int count;
 
   const Rating({

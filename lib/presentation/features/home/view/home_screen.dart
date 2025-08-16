@@ -327,6 +327,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (controller.error != null) {
+      final isOfflineNoCache = controller.error!
+          .toLowerCase()
+          .contains('connect to wi');
       return Container(
         height: 400,
         child: Center(
@@ -334,13 +337,13 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                Icons.error_outline,
+                isOfflineNoCache ? Icons.wifi_off_rounded : Icons.error_outline,
                 size: 64,
-                color: AppColors.warningRed,
+                color: isOfflineNoCache ? AppColors.textSecondary : AppColors.warningRed,
               ),
               SizedBox(height: AppDimensions.spacing16),
               Text(
-                'Failed to load products',
+                isOfflineNoCache ? 'No internet connection' : 'Failed to load products',
                 style: TextStyle(
                   fontSize: AppDimensions.fontLarge,
                   fontWeight: FontWeight.bold,
@@ -348,7 +351,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SizedBox(height: AppDimensions.spacing8),
               Text(
-                controller.error!,
+                isOfflineNoCache
+                    ? 'Connect to Wi‑Fi please'
+                    : controller.error!,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: AppDimensions.fontMedium,

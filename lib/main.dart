@@ -5,6 +5,7 @@ import 'core/services/auth_token_store.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_manager.dart';
 import 'core/routing/app_routes.dart';
+import 'core/hive/hive_setup.dart';
 
 // Global key to get current context from anywhere
 final GlobalKey<NavigatorState> appKey = GlobalKey<NavigatorState>();
@@ -19,6 +20,11 @@ void main() async {
   print('🔧 Configuring dependencies...');
   configureDependencies();
   print('✅ Dependencies configured successfully');
+
+  // Initialize Hive boxes
+  print('📦 Initializing local cache (Hive)...');
+  await HiveSetup.init();
+  print('✅ Hive initialized');
 
   // Initialize token store
   print('🔐 Initializing token store...');
