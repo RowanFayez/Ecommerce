@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/animation/page_transitions.dart';
 import 'package:taskaia/core/managers/app_bottom_sheet.dart';
 import 'package:taskaia/core/managers/app_dialog.dart';
 import 'package:taskaia/core/routing/app_routes.dart';
@@ -8,12 +8,13 @@ import 'package:taskaia/core/theme/theme_manager.dart';
 import 'package:taskaia/core/di/injection.dart';
 import 'package:taskaia/core/services/auth_token_store.dart';
 import 'package:taskaia/presentation/features/product/screens/product_details_screen.dart';
-import '../controller/home_controller.dart';
+import '../bloc/product_bloc.dart';
+import '../bloc/product_event.dart';
+import '../bloc/product_state.dart';
 import '../../../../core/theme/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/utils/responsive_utils.dart';
-import '../../../../core/widgets/responsive_scaffold.dart';
 import '../widgets/home_header.dart';
 import '../widgets/category_chips.dart';
 import '../widgets/staggered_products_grid.dart';
@@ -32,15 +33,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final ThemeManager _themeManager = ThemeManager();
-  late HomeController _homeController;
   final TextEditingController _searchController = TextEditingController();
   int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _homeController = getIt<HomeController>();
-    _loadData();
+  // No-op here; we'll dispatch init in BlocProvider's builder
   }
 
   @override
@@ -49,10 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  Future<void> _loadData() async {
-    await _homeController.loadCategories();
-    await _homeController.loadProducts();
-  }
+  // No local load; Bloc handles initialization
 
   void _showLoginRequiredDialog() {
     AppDialog.showInstructionDialog(
@@ -86,11 +82,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return ChangeNotifierProvider.value(
-      value: _homeController,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: getIt<AuthTokenStore>()),
+      ],
       child: Consumer<AuthTokenStore>(
         builder: (context, authTokenStore, child) {
-          return Scaffold(
+          return BlocProvider(
+            create: (_) => getIt<ProductBloc>()..add(const ProductsInitialized()),
+            child: Scaffold(
             backgroundColor:
                 isDark ? AppColors.darkBackground : AppColors.background,
             appBar: AppBar(
@@ -171,8 +171,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            body: Consumer<HomeController>(
-              builder: (context, controller, child) {
+            body: BlocBuilder<ProductBloc, ProductState>(
+              builder: (context, state) {
                 return SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,10 +206,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
 
                       // Category Chips
-                      CategoryChips(
-                        categories: controller.categories,
-                        selectedCategory: controller.selectedCategory,
-                        onCategorySelected: controller.selectCategory,
+                      BlocBuilder<ProductBloc, ProductState>(
+                        buildWhen: (p, c) => c is ProductLoadSuccess || c is ProductLoadInProgress || c is ProductLoadFailure,
+                        builder: (context, state) {
+                          if (state is ProductLoadSuccess) {
+                            return CategoryChips(
+                              categories: state.categories,
+                              selectedCategory: state.selectedCategory,
+                              onCategorySelected: (categ) => context.read<ProductBloc>().add(CategorySelected(categ)),
+                            );
+                          }
+                          // Loading placeholder for categories
+                          return const SizedBox(height: 80, child: Center(child: CircularProgressIndicator(color: AppColors.primary)));
+                        },
                       ),
 
                       SizedBox(
@@ -220,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
 
                       // Products Grid with Loading/Error States
-                      _buildProductsContent(controller),
+                      _buildProductsContent(state),
 
                       // Bottom spacing for navigation bar
                       SizedBox(
@@ -265,6 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
+            ),
             ),
           );
         },
@@ -314,8 +324,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildProductsContent(HomeController controller) {
-    if (controller.isLoading) {
+  Widget _buildProductsContent(ProductState state) {
+    if (state is ProductLoadInProgress) {
       return Container(
         height: 400,
         child: const Center(
@@ -326,8 +336,8 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    if (controller.error != null) {
-      final isOfflineNoCache = controller.error!
+    if (state is ProductLoadFailure) {
+      final isOfflineNoCache = state.message
           .toLowerCase()
           .contains('connect to wi');
       return Container(
@@ -351,9 +361,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SizedBox(height: AppDimensions.spacing8),
               Text(
-                isOfflineNoCache
-                    ? 'Connect to Wi‑Fi please'
-                    : controller.error!,
+                isOfflineNoCache ? 'Connect to Wi‑Fi please' : state.message,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: AppDimensions.fontMedium,
@@ -362,7 +370,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SizedBox(height: AppDimensions.spacing24),
               ElevatedButton(
-                onPressed: controller.retry,
+                onPressed: () => context.read<ProductBloc>().add(const ProductsRetryRequested()),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                 ),
@@ -379,7 +387,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    if (controller.products.isEmpty) {
+    if (state is ProductLoadSuccess && state.products.isEmpty) {
       return Container(
         height: 400,
         child: Center(
@@ -405,19 +413,23 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    return StaggeredProductsGrid(
-      products: controller.products,
-      onProductTap: (product) {
-        AppRoutes.navigateWithTransition(
-          context,
-          ProductDetailsScreen(product: product),
-          transition: TransitionType.slideFromRight,
-          duration: const Duration(
-            milliseconds: AppDimensions.animationVerySlow,
-          ),
-        );
-      },
-    );
+    if (state is ProductLoadSuccess) {
+      return StaggeredProductsGrid(
+        products: state.products,
+        onProductTap: (product) {
+          AppRoutes.navigateWithTransition(
+            context,
+            ProductDetailsScreen(product: product),
+            transition: TransitionType.slideFromRight,
+            duration: const Duration(
+              milliseconds: AppDimensions.animationVerySlow,
+            ),
+          );
+        },
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   void _showLogoutConfirmation() {
