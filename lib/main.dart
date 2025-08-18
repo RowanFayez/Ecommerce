@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'core/di/injection.dart';
@@ -51,6 +52,23 @@ void main() async {
   final authTokenStore = getIt<AuthTokenStore>();
   await authTokenStore.initialize();
   print('✅ Token store initialized');
+
+  // Rehydrate from FirebaseAuth if a Google session exists but no cached token yet
+  if (!authTokenStore.isAuthenticated) {
+    final current = fb.FirebaseAuth.instance.currentUser;
+    if (current != null) {
+      try {
+        final idToken = await current.getIdToken();
+        final tokenStr = idToken ?? '';
+        if (tokenStr.isNotEmpty) {
+          await authTokenStore.save(tokenStr);
+          print('🔁 Rehydrated auth token from Firebase user session');
+        }
+      } catch (e) {
+        print('⚠️ Failed to rehydrate token from Firebase: $e');
+      }
+    }
+  }
 
   print('🎨 Running app...');
   runApp(const AlexTramApp());
