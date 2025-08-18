@@ -24,6 +24,9 @@ import '../../cart/cart_screen.dart';
 import '../../user/user_screen.dart';
 import '../../auth/controller/auth_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
+import '../../favorites/cubit/favorites_cubit.dart';
+import '../../favorites/view/favorites_screen.dart';
+import '../../../widgets/curved_bottom_nav.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -35,7 +38,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final ThemeManager _themeManager = ThemeManager();
   final TextEditingController _searchController = TextEditingController();
-  int _currentIndex = 0;
+  int _currentIndex = 0; // 0 Home, 1 Search, 2 Favorites, 3 Settings, 4 Profile
 
   @override
   void initState() {
@@ -89,9 +92,17 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
       child: Consumer<AuthTokenStore>(
         builder: (context, authTokenStore, child) {
-          return BlocProvider(
-            create: (_) =>
-                getIt<ProductBloc>()..add(const ProductsInitialized()),
+          return MultiBlocProvider(
+            providers: [
+              BlocProvider(
+                create: (_) => getIt<ProductBloc>()
+                  ..add(const ProductsInitialized()),
+              ),
+              BlocProvider(
+                create: (_) => FavoritesCubit()
+                  ..load(fb.FirebaseAuth.instance.currentUser?.uid ?? 'guest'),
+              ),
+            ],
             child: Scaffold(
               backgroundColor:
                   isDark ? AppColors.darkBackground : AppColors.background,
@@ -177,8 +188,31 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               body: BlocBuilder<ProductBloc, ProductState>(
                 builder: (context, state) {
-                  if (_currentIndex == 3) {
+                  // Tabs routing
+                  if (_currentIndex == 4) {
                     return _buildProfileTab(context, authTokenStore);
+                  } else if (_currentIndex == 2) {
+                    return BlocBuilder<FavoritesCubit, FavoritesState>(
+                      builder: (context, favState) {
+                        final cubit = context.read<FavoritesCubit>();
+                        final favs = cubit.currentProducts();
+                        return FavoritesScreen(products: favs);
+                      },
+                    );
+                  } else if (_currentIndex == 1) {
+                    // Search tab could show the same content with focus in search bar for now
+                    return SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const HomeHeader(),
+                          SearchBarWidget(
+                            controller: _searchController,
+                            onSearch: (query) {},
+                          ),
+                        ],
+                      ),
+                    );
                   }
                   return SingleChildScrollView(
                     child: Column(
@@ -242,38 +276,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
-              bottomNavigationBar: Container(
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : AppColors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.cardShadow,
-                      blurRadius: AppDimensions.blurRadiusSmall,
-                      offset: const Offset(0, -2),
-                    ),
-                  ],
-                ),
-                child: SafeArea(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal:
-                          ResponsiveUtils.getResponsiveSpacing(context, 20),
-                      vertical:
-                          ResponsiveUtils.getResponsiveSpacing(context, 12),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildNavItem(0, Icons.home, 'Home', isDark),
-                        _buildNavItem(
-                            1, Icons.favorite_border, 'Favorites', isDark),
-                        _buildNavItem(2, Icons.notifications_none,
-                            'Notifications', isDark),
-                        _buildNavItem(
-                            3, Icons.person_outline, 'Profile', isDark),
-                      ],
-                    ),
-                  ),
+              bottomNavigationBar: SafeArea(
+                child: CurvedBottomNav(
+                  index: _currentIndex,
+                  onTap: (i) => setState(() => _currentIndex = i),
                 ),
               ),
             ),
@@ -283,47 +289,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label, bool isDark) {
-    final isSelected = _currentIndex == index;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _currentIndex = index;
-        });
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isSelected ? icon : icon,
-            size: ResponsiveUtils.getResponsiveIconSize(
-              context,
-              AppDimensions.iconMedium,
-            ),
-            color: isSelected
-                ? AppColors.primary
-                : (isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.textSecondary),
-          ),
-          SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 4)),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: AppDimensions.fontSmall,
-              color: isSelected
-                  ? AppColors.primary
-                  : (isDark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.textSecondary),
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // old bottom nav item builder removed; using AnimatedBottomNavBar
 
   Widget _buildProductsContent(ProductState state) {
     if (state is ProductLoadInProgress) {

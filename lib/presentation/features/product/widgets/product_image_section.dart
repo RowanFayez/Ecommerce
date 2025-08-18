@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:taskaia/data/models/product.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import 'notched_bottom_clipper.dart';
+import '../../favorites/cubit/favorites_cubit.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
+import '../../../../core/services/auth_token_store.dart';
+import '../../../../core/di/injection.dart';
 
 class ProductImageSection extends StatelessWidget {
   final Product product;
@@ -51,30 +56,7 @@ class ProductImageSection extends StatelessWidget {
               context, AppDimensions.spacing12),
           right: ResponsiveUtils.getResponsiveSpacing(
               context, AppDimensions.spacing12),
-          child: Container(
-            width: ResponsiveUtils.getResponsiveSpacing(context, 36),
-            height: ResponsiveUtils.getResponsiveSpacing(context, 36),
-            decoration: BoxDecoration(
-              color:
-                  (isDark ? AppColors.darkCard : AppColors.white).withOpacity(0.9),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.cardShadow.withOpacity(0.2),
-                  blurRadius: ResponsiveUtils.getResponsiveSpacing(context, 8),
-                  offset:
-                      Offset(0, ResponsiveUtils.getResponsiveSpacing(context, 2)),
-                ),
-              ],
-            ),
-            child: Icon(
-              Icons.favorite_outline,
-              size: ResponsiveUtils.getResponsiveSpacing(
-                  context, AppDimensions.iconSmall),
-              color:
-                  isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-            ),
-          ),
+          child: _FavoriteButton(product: product, isDark: isDark),
         ),
 
         // Small dark cart icon centered at notch
@@ -229,6 +211,74 @@ class ProductImageSection extends StatelessWidget {
               context, AppDimensions.spacing16),
         ),
         duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+}
+
+class _FavoriteButton extends StatefulWidget {
+  final Product product;
+  final bool isDark;
+  const _FavoriteButton({required this.product, required this.isDark});
+
+  @override
+  State<_FavoriteButton> createState() => _FavoriteButtonState();
+}
+
+class _FavoriteButtonState extends State<_FavoriteButton> {
+  bool _toggling = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.read<FavoritesCubit?>();
+    final favState = context.watch<FavoritesCubit?>()?.state;
+    final isFav = favState?.ids.contains(widget.product.id) ?? false;
+
+    return GestureDetector(
+      onTap: cubit == null || _toggling
+          ? null
+          : () async {
+              final user = fb.FirebaseAuth.instance.currentUser;
+              final tokenStore = getIt<AuthTokenStore>();
+              final allowed = user != null || tokenStore.isAuthenticated;
+              final tokenKey = (tokenStore.token ?? 'api_user');
+              final uid = user?.uid ?? 'api_${tokenKey.hashCode}';
+              if (!allowed) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Login to save favorites')),
+                );
+                return;
+              }
+              setState(() => _toggling = true);
+              await cubit.toggle(uid, widget.product);
+              if (mounted) setState(() => _toggling = false);
+            },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: ResponsiveUtils.getResponsiveSpacing(context, 36),
+        height: ResponsiveUtils.getResponsiveSpacing(context, 36),
+        decoration: BoxDecoration(
+          color: (widget.isDark ? AppColors.darkCard : AppColors.white)
+              .withOpacity(0.9),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.cardShadow.withOpacity(0.2),
+              blurRadius: ResponsiveUtils.getResponsiveSpacing(context, 8),
+              offset: Offset(0, ResponsiveUtils.getResponsiveSpacing(context, 2)),
+            ),
+          ],
+        ),
+        child: Icon(
+          isFav ? Icons.favorite : Icons.favorite_outline,
+          size: ResponsiveUtils.getResponsiveSpacing(
+              context, AppDimensions.iconSmall),
+          color: isFav
+              ? Colors.red
+              : (widget.isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.textSecondary),
+        ),
       ),
     );
   }
