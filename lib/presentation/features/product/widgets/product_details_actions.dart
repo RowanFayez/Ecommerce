@@ -50,7 +50,7 @@ class ProductDetailsActions extends StatelessWidget {
         ),
       );
     } else {
-      // User is guest, show login dialog
+  // User is guest, show login dialog
       _showLoginRequiredDialog(context);
     }
   }

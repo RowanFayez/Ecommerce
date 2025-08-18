@@ -23,6 +23,7 @@ import '../widgets/search_bar_widget.dart';
 import '../../cart/cart_screen.dart';
 import '../../user/user_screen.dart';
 import '../../auth/controller/auth_controller.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -176,39 +177,31 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               body: BlocBuilder<ProductBloc, ProductState>(
                 builder: (context, state) {
+                  if (_currentIndex == 3) {
+                    return _buildProfileTab(context, authTokenStore);
+                  }
                   return SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const HomeHeader(),
-
-                        // Search Bar
                         SearchBarWidget(
                           controller: _searchController,
-                          onSearch: (query) {
-                            // TODO: Implement search functionality
-                            print('Searching for: $query');
-                          },
+                          onSearch: (query) {},
                         ),
-
                         SizedBox(
                           height: ResponsiveUtils.getResponsiveSpacing(
                             context,
                             AppDimensions.spacing20,
                           ),
                         ),
-
-                        // Promotional Banner
                         const PromotionalBanner(),
-
                         SizedBox(
                           height: ResponsiveUtils.getResponsiveSpacing(
                             context,
                             AppDimensions.spacing20,
                           ),
                         ),
-
-                        // Category Chips
                         BlocBuilder<ProductBloc, ProductState>(
                           buildWhen: (p, c) =>
                               c is ProductLoadSuccess ||
@@ -224,26 +217,20 @@ class _HomeScreenState extends State<HomeScreen> {
                                     .add(CategorySelected(categ)),
                               );
                             }
-                            // Loading placeholder for categories
                             return const SizedBox(
                                 height: 80,
                                 child: Center(
                                     child: CircularProgressIndicator(
-                                        color: AppColors.primary)));
+                                        color: AppColors.primary))); 
                           },
                         ),
-
                         SizedBox(
                           height: ResponsiveUtils.getResponsiveSpacing(
                             context,
                             AppDimensions.spacing20,
                           ),
                         ),
-
-                        // Products Grid with Loading/Error States
                         _buildProductsContent(state),
-
-                        // Bottom spacing for navigation bar
                         SizedBox(
                           height: ResponsiveUtils.getResponsiveSpacing(
                             context,
@@ -473,6 +460,78 @@ class _HomeScreenState extends State<HomeScreen> {
           transition: TransitionType.slideFromLeft,
         );
       },
+    );
+  }
+
+  Widget _buildProfileTab(BuildContext context, AuthTokenStore authTokenStore) {
+    final fbUser = fb.FirebaseAuth.instance.currentUser;
+    if (authTokenStore.isAuthenticated && fbUser != null) {
+      // Google account profile
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 40,
+                backgroundImage:
+                    fbUser.photoURL != null ? NetworkImage(fbUser.photoURL!) : null,
+                child: fbUser.photoURL == null
+                    ? const Icon(Icons.person, size: 40)
+                    : null,
+              ),
+              const SizedBox(height: 12),
+              Text(fbUser.displayName ?? 'Google User',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              Text(fbUser.email ?? '', style: const TextStyle(color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (authTokenStore.isAuthenticated) {
+      // Non-google auth: show API users list screen
+      return const UserScreen();
+    }
+
+    // Guest
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.person_outline, size: 64, color: AppColors.primary),
+            const SizedBox(height: 12),
+            const Text('You have no account yet'),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    AppRoutes.navigateToLogin(context);
+                  },
+                  child: const Text('Create account'),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton(
+                  onPressed: () async {
+                    final result = await AuthController().loginWithGoogle();
+                    if (result['success'] == true && mounted) {
+                      setState(() {});
+                    }
+                  },
+                  child: const Text('Sign in with Google'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../../data/datasources/api_client.dart';
 import '../../../../data/models/auth_request.dart';
 import '../../../../data/models/user.dart';
@@ -69,6 +71,59 @@ class AuthController {
       return {
         'success': false,
         'message': 'An unexpected error occurred. Please try again.',
+      };
+    }
+  }
+
+  /// Google Sign-In for Android/Web using Firebase Auth
+  Future<Map<String, dynamic>> loginWithGoogle() async {
+    try {
+  fb.UserCredential userCredential;
+
+  if (kIsWeb) {
+    final provider = fb.GoogleAuthProvider();
+    provider.setCustomParameters({'prompt': 'select_account'});
+    userCredential =
+    await fb.FirebaseAuth.instance.signInWithPopup(provider);
+  } else {
+    final provider = fb.GoogleAuthProvider();
+    userCredential =
+    await fb.FirebaseAuth.instance.signInWithProvider(provider);
+  }
+
+      final fb.User? user = userCredential.user;
+      if (user == null) {
+        return {'success': false, 'message': 'No user information available'};
+      }
+
+      final idToken = await user.getIdToken();
+      if (idToken == null || idToken.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Failed to obtain ID token',
+        };
+      }
+      await _authTokenStore.save(idToken);
+
+      return {
+        'success': true,
+        'message': 'Google sign-in successful',
+        'user': {
+          'uid': user.uid,
+          'name': user.displayName,
+          'email': user.email,
+          'photo': user.photoURL,
+        }
+      };
+    } on fb.FirebaseAuthException catch (e) {
+      return {
+        'success': false,
+        'message': e.message ?? 'Google sign-in failed',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Google sign-in error: $e',
       };
     }
   }
@@ -191,6 +246,14 @@ class AuthController {
 
   /// Logout user and clear all authentication data
   Future<void> logout() async {
+  // Firebase sign-out (for Google accounts)
+    try {
+      final auth = fb.FirebaseAuth.instance;
+      if (auth.currentUser != null) {
+        await auth.signOut();
+      }
+    } catch (_) {}
+
     await _authTokenStore.clear();
   }
 
