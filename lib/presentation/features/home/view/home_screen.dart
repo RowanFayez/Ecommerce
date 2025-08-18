@@ -38,7 +38,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final ThemeManager _themeManager = ThemeManager();
   final TextEditingController _searchController = TextEditingController();
-  int _currentIndex = 0; // 0 Home, 1 Search, 2 Favorites, 3 Settings, 4 Profile
+  int _currentIndex = 0; // 0 Home, 1 Favorites, 2 Profile
 
   @override
   void initState() {
@@ -186,32 +186,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              body: BlocBuilder<ProductBloc, ProductState>(
+        body: BlocBuilder<ProductBloc, ProductState>(
                 builder: (context, state) {
                   // Tabs routing
-                  if (_currentIndex == 4) {
+          if (_currentIndex == 2) {
                     return _buildProfileTab(context, authTokenStore);
-                  } else if (_currentIndex == 2) {
+          } else if (_currentIndex == 1) {
                     return BlocBuilder<FavoritesCubit, FavoritesState>(
                       builder: (context, favState) {
                         final cubit = context.read<FavoritesCubit>();
                         final favs = cubit.currentProducts();
                         return FavoritesScreen(products: favs);
                       },
-                    );
-                  } else if (_currentIndex == 1) {
-                    // Search tab could show the same content with focus in search bar for now
-                    return SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const HomeHeader(),
-                          SearchBarWidget(
-                            controller: _searchController,
-                            onSearch: (query) {},
-                          ),
-                        ],
-                      ),
                     );
                   }
                   return SingleChildScrollView(

@@ -16,12 +16,11 @@ class CurvedBottomNav extends StatelessWidget {
           color: i == index ? AppColors.primary : Colors.white,
         );
 
+    // Only Home, Favorites (center), and Profile
     final items = <Widget>[
       buildIcon(Icons.home, 0),
-      buildIcon(Icons.search, 1),
-      buildIcon(Icons.favorite, 2), // center heart
-      buildIcon(Icons.settings, 3),
-      buildIcon(Icons.person, 4),
+      buildIcon(Icons.favorite, 1), // center heart
+      buildIcon(Icons.person, 2),
     ];
 
     return CurvedNavigationBar(

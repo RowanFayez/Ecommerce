@@ -57,11 +57,18 @@ class ProductDetailsActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isSmall = MediaQuery.of(context).size.height < 700;
     return Container(
-      padding: EdgeInsets.all(ResponsiveUtils.getResponsiveSpacing(
-        context,
-        AppDimensions.spacing24,
-      )),
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveUtils.getResponsiveSpacing(
+          context,
+          AppDimensions.spacing24,
+        ),
+        vertical: ResponsiveUtils.getResponsiveSpacing(
+          context,
+          isSmall ? AppDimensions.spacing12 : AppDimensions.spacing16,
+        ),
+      ),
       child: Row(
         children: [
           // Price Section
@@ -97,7 +104,7 @@ class ProductDetailsActions extends StatelessWidget {
           const Spacer(),
 
           // Add to Cart Button
-          ElevatedButton(
+    ElevatedButton(
             onPressed: product.isAvailable ? () => _addToCart(context) : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -105,11 +112,11 @@ class ProductDetailsActions extends StatelessWidget {
               padding: EdgeInsets.symmetric(
                 horizontal: ResponsiveUtils.getResponsiveSpacing(
                   context,
-                  AppDimensions.spacing32,
+      isSmall ? AppDimensions.spacing20 : AppDimensions.spacing32,
                 ),
                 vertical: ResponsiveUtils.getResponsiveSpacing(
                   context,
-                  AppDimensions.spacing16,
+      isSmall ? AppDimensions.spacing12 : AppDimensions.spacing16,
                 ),
               ),
               shape: RoundedRectangleBorder(
@@ -124,7 +131,7 @@ class ProductDetailsActions extends StatelessWidget {
                 color: AppColors.textOnPrimary,
                 fontSize: ResponsiveUtils.getResponsiveFontSize(
                   context,
-                  AppDimensions.fontLarge,
+      isSmall ? AppDimensions.fontMedium : AppDimensions.fontLarge,
                 ),
                 fontWeight: FontWeight.w600,
               ),

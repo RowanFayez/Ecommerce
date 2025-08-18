@@ -19,7 +19,7 @@ class ProductDetailsContent extends StatelessWidget {
         context,
         AppDimensions.spacing24,
       )),
-      child: Column(
+  child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(height: ResponsiveUtils.getResponsiveSpacing(
@@ -28,17 +28,24 @@ class ProductDetailsContent extends StatelessWidget {
           )),
 
           // Product Name
-          Text(
-            product.title,
-            style: TextStyle(
-              fontSize: ResponsiveUtils.getResponsiveFontSize(
-                context,
-                AppDimensions.fontDisplay,
+          LayoutBuilder(builder: (context, c) {
+            final maxTitle = MediaQuery.of(context).size.width < 360 ?
+              AppDimensions.fontHeading : AppDimensions.fontDisplay;
+            return Text(
+              product.title,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: ResponsiveUtils.getResponsiveFontSize(
+                  context,
+                  maxTitle,
+                ),
+                fontWeight: FontWeight.w700,
+                height: 1.2,
+                color: isDark ? AppColors.darkText : AppColors.textPrimary,
               ),
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.darkText : AppColors.textPrimary,
-            ),
-          ),
+            );
+          }),
 
           SizedBox(height: ResponsiveUtils.getResponsiveSpacing(
             context,
@@ -56,52 +63,37 @@ class ProductDetailsContent extends StatelessWidget {
             AppDimensions.spacing16,
           )),
 
-          // Product Description - Fixed: No Scroll, Auto-fit Text
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                // Calculate available space and adjust text accordingly
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Description:', // Optional header
-                      style: TextStyle(
-                        fontSize: ResponsiveUtils.getResponsiveFontSize(
-                          context,
-                          AppDimensions.fontXLarge,
-                        ),
-                        fontWeight: FontWeight.w600,
-                        color:
-                            isDark ? AppColors.darkText : AppColors.textPrimary,
-                      ),
-                    ),
-                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(
-                      context,
-                      AppDimensions.spacing8,
-                    )),
-                    Expanded(
-                      child: Text(
-                        product.description,
-                        style: TextStyle(
-                          fontSize: ResponsiveUtils.getResponsiveFontSize(
-                            context,
-                            AppDimensions.fontLarge,
-                          ),
-                          height: 1.5, // Better line spacing
-                          color: isDark
-                              ? AppColors.darkTextSecondary
-                              : AppColors.textSecondary,
-                        ),
-                        textAlign: TextAlign.justify, // Better text alignment
-                        overflow: TextOverflow
-                            .visible, // Allow text to show completely
-                      ),
-                    ),
-                  ],
-                );
-              },
+          // Description section (no internal Expanded to avoid overflows)
+          Text(
+            'Description:',
+            style: TextStyle(
+              fontSize: ResponsiveUtils.getResponsiveFontSize(
+                context,
+                AppDimensions.fontXLarge,
+              ),
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppColors.darkText : AppColors.textPrimary,
             ),
+          ),
+          SizedBox(
+            height: ResponsiveUtils.getResponsiveSpacing(
+              context,
+              AppDimensions.spacing8,
+            ),
+          ),
+          Text(
+            product.description,
+            style: TextStyle(
+              fontSize: ResponsiveUtils.getResponsiveFontSize(
+                context,
+                AppDimensions.fontLarge,
+              ),
+              height: 1.5,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.start,
           ),
 
           SizedBox(height: ResponsiveUtils.getResponsiveSpacing(

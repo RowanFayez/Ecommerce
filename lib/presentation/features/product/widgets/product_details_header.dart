@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
-import '../../../../core/utils/responsive_utils.dart';
 import '../../../../data/models/product.dart';
 import 'reusable_product_image.dart'; // Import the new reusable widget
 
@@ -20,14 +19,14 @@ class ProductDetailsHeader extends StatelessWidget {
         Container(
           width: double.infinity,
           height: double.infinity,
-          padding: ResponsiveUtils.getHorizontalPadding(context),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           child: ReusableProductImage(
             imageUrl: product.image,
             heroTag: 'product-image-${product.id}',
-            aspectRatio: 1.2, // Fixed aspect ratio to prevent overflow
-            borderRadius: AppDimensions.radiusLarge,
-            fit: BoxFit.cover,
-            showShadow: true,
+            // No aspectRatio here so it can use all available height
+            borderRadius: 0,
+            fit: BoxFit.contain, // Show full image without crop on phones
+            showShadow: false,
           ),
         ),
 

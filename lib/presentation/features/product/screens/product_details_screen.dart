@@ -51,8 +51,18 @@ class ProductDetailsScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  Expanded(child: ProductDetailsContent(product: product)),
-                  ProductDetailsActions(product: product),
+                  // Scrollable content to avoid overflow on small screens
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.zero,
+                      child: ProductDetailsContent(product: product),
+                    ),
+                  ),
+                  // Keep actions visible and lifted above system insets
+                  SafeArea(
+                    top: false,
+                    child: ProductDetailsActions(product: product),
+                  ),
                 ],
               ),
             ),
