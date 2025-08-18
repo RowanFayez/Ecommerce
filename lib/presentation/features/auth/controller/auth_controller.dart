@@ -195,32 +195,38 @@ class AuthController {
     String password,
     String phone,
   ) async {
+    print('📝 Attempting signup for: $email');
+
+    // Build the user object up-front so we can fall back to local creation
+    final draftUser = User(
+      id: 0, // Will be assigned by the server (or left 0 for local)
+      email: email,
+      username: email,
+      password: password,
+      name: Name(
+        firstname: firstName,
+        lastname: lastName,
+      ),
+      phone: phone,
+      address: Address(
+        city: 'Test City',
+        street: 'Test Street',
+        number: 123,
+        zipcode: '12345',
+        geolocation: GeoLocation(lat: '40.7128', long: '-74.0060'),
+      ),
+    );
+
     try {
-      print('📝 Attempting signup for: $email');
-
-      final user = User(
-        id: 0, // Will be assigned by the server
-        email: email,
-        username: email,
-        password: password,
-        name: Name(
-          firstname: firstName,
-          lastname: lastName,
-        ),
-        phone: phone,
-        address: Address(
-          city: 'Test City',
-          street: 'Test Street',
-          number: 123,
-          zipcode: '12345',
-          geolocation: GeoLocation(lat: '40.7128', long: '-74.0060'),
-        ),
-      );
-
       print('📤 Sending signup request...');
-      final response = await _apiClient.signup(user);
+      final response = await _apiClient.signup(draftUser);
       print('✅ Signup successful! User ID: ${response.id}');
       print('✅ User: ${response.name.firstname} ${response.name.lastname}');
+
+      // Persist locally so it appears in the Users screen and supports fallback login
+      if (getIt.isRegistered<LocalUserStore>()) {
+        getIt<LocalUserStore>().add(response);
+      }
 
       return {
         'success': true,
@@ -228,33 +234,31 @@ class AuthController {
         'message': 'Account created successfully',
       };
     } on DioException catch (e) {
+      // If API fails (offline/demo), still create the user locally and report success
+      print('⚠️ Signup via API failed, saving locally instead. Details:');
       print('❌ DioException: ${e.message}');
       print('❌ Status Code: ${e.response?.statusCode}');
       print('❌ Response Data: ${e.response?.data}');
 
-      String errorMessage = 'Signup failed';
-
-      if (e.response?.statusCode == 400) {
-        errorMessage = 'Please check your input data';
-      } else if (e.response?.statusCode == 409) {
-        errorMessage = 'Email already exists. Please use a different email.';
-      } else if (e.type == DioExceptionType.connectionTimeout) {
-        errorMessage = 'Connection timeout. Please try again.';
-      } else if (e.type == DioExceptionType.receiveTimeout) {
-        errorMessage = 'Request timeout. Please try again.';
-      } else if (e.type == DioExceptionType.connectionError) {
-        errorMessage = 'No internet connection. Please check your network.';
+      if (getIt.isRegistered<LocalUserStore>()) {
+        getIt<LocalUserStore>().add(draftUser);
       }
 
       return {
-        'success': false,
-        'message': errorMessage,
+        'success': true,
+        'user': draftUser,
+        'message': 'Account created locally. You can use it within the app.',
       };
     } catch (e) {
-      print('❌ Unexpected error: $e');
+      // Any unexpected error: still fall back to local user creation
+      print('⚠️ Unexpected signup error, saving locally: $e');
+      if (getIt.isRegistered<LocalUserStore>()) {
+        getIt<LocalUserStore>().add(draftUser);
+      }
       return {
-        'success': false,
-        'message': 'An unexpected error occurred. Please try again.',
+        'success': true,
+        'user': draftUser,
+        'message': 'Account created locally. You can use it within the app.',
       };
     }
   }

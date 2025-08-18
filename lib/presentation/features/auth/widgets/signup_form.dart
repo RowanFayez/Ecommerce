@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:taskaia/core/managers/app_toast.dart';
 import 'package:taskaia/core/theme/app_strings.dart';
 import 'package:taskaia/core/validators/form_validator.dart';
-import 'package:taskaia/core/routing/app_routes.dart';
 import '../../../../../core/widgets/app_text_field.dart';
 import '../../../../../core/widgets/app_button.dart';
 import '../../../../../core/theme/app_dimensions.dart';
 import '../../../../../core/utils/responsive_utils.dart';
 import '../controller/auth_controller.dart';
+import '../../../../core/di/injection.dart';
+import '../../../../core/services/local_user_store.dart';
 
 class SignUpForm extends StatefulWidget {
   const SignUpForm({super.key});
@@ -73,6 +74,14 @@ class _SignUpFormState extends State<SignUpForm> {
               'Account Created',
               subtitle: result['message'],
             );
+
+            // Persist locally (defensive) to ensure Users screen sees it
+            final user = result['user'];
+            if (user != null && getIt.isRegistered<LocalUserStore>()) {
+              try {
+                getIt<LocalUserStore>().add(user);
+              } catch (_) {}
+            }
 
             // Navigate back to login after a short delay
             Future.delayed(

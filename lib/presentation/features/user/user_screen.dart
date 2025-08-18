@@ -4,6 +4,7 @@ import '../../../data/datasources/api_client.dart';
 import '../../../data/models/user.dart';
 import 'user_card.dart';
 import 'create_user_screen.dart';
+import '../../../core/services/local_user_store.dart';
 
 class UserScreen extends StatefulWidget {
   const UserScreen({super.key});
@@ -31,8 +32,24 @@ class _UserScreenState extends State<UserScreen> {
     });
     try {
       final data = await _api.getUsers();
+      // Merge with locally created users (from sign-up or admin create screen)
+      final local = getIt.isRegistered<LocalUserStore>()
+          ? getIt<LocalUserStore>().users
+          : const <User>[];
+
+      // Deduplicate by id/email/username, favor API data when conflicts exist
+      final Map<String, User> mergedByKey = {};
+      for (final u in data) {
+        final key = _userKey(u);
+        mergedByKey[key] = u;
+      }
+      for (final u in local) {
+        final key = _userKey(u);
+        mergedByKey.putIfAbsent(key, () => u);
+      }
+
       setState(() {
-        _users = data;
+        _users = mergedByKey.values.toList();
       });
     } catch (e) {
       setState(() {
@@ -41,6 +58,14 @@ class _UserScreenState extends State<UserScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  String _userKey(User u) {
+    // Prefer id if non-zero; else fallback to email or username
+    if (u.id != 0) return 'id:${u.id}';
+    if (u.email.isNotEmpty) return 'email:${u.email.toLowerCase()}';
+    if (u.username.isNotEmpty) return 'username:${u.username.toLowerCase()}';
+    return '${u.name.firstname}:${u.name.lastname}:${u.phone}';
   }
 
   void _onUserUpdated(User updated) {
