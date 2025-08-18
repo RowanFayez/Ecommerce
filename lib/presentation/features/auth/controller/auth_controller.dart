@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../../../data/datasources/api_client.dart';
 import '../../../../data/models/auth_request.dart';
 import '../../../../data/models/user.dart';
@@ -11,6 +12,7 @@ import '../../../../core/services/local_user_store.dart';
 class AuthController {
   final ApiClient _apiClient;
   final AuthTokenStore _authTokenStore;
+  static bool _googleInitialized = false;
 
   AuthController({
     ApiClient? apiClient,
@@ -78,18 +80,31 @@ class AuthController {
   /// Google Sign-In for Android/Web using Firebase Auth
   Future<Map<String, dynamic>> loginWithGoogle() async {
     try {
-  fb.UserCredential userCredential;
+      fb.UserCredential userCredential;
 
-  if (kIsWeb) {
-    final provider = fb.GoogleAuthProvider();
-    provider.setCustomParameters({'prompt': 'select_account'});
-    userCredential =
-    await fb.FirebaseAuth.instance.signInWithPopup(provider);
-  } else {
-    final provider = fb.GoogleAuthProvider();
-    userCredential =
-    await fb.FirebaseAuth.instance.signInWithProvider(provider);
-  }
+      if (kIsWeb) {
+        // Web: use popup to avoid full page redirect
+        final provider = fb.GoogleAuthProvider();
+        provider.setCustomParameters({'prompt': 'select_account'});
+        userCredential = await fb.FirebaseAuth.instance.signInWithPopup(provider);
+      } else {
+        // Android/iOS: use GoogleSignIn v7 API (no direct constructor)
+        final signIn = GoogleSignIn.instance;
+        if (!_googleInitialized) {
+          await signIn.initialize();
+          _googleInitialized = true;
+        }
+
+        // Starts an interactive sign-in process
+  final account = await signIn.authenticate();
+  final tokens = account.authentication;
+        final credential = fb.GoogleAuthProvider.credential(
+          // google_sign_in v7 exposes only idToken; that's sufficient
+          idToken: tokens.idToken,
+        );
+        userCredential =
+            await fb.FirebaseAuth.instance.signInWithCredential(credential);
+      }
 
       final fb.User? user = userCredential.user;
       if (user == null) {
@@ -115,7 +130,7 @@ class AuthController {
           'photo': user.photoURL,
         }
       };
-    } on fb.FirebaseAuthException catch (e) {
+  } on fb.FirebaseAuthException catch (e) {
       return {
         'success': false,
         'message': e.message ?? 'Google sign-in failed',
