@@ -8,6 +8,9 @@ import '../../../../core/theme/app_strings.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../data/models/product.dart';
+import '../../../../core/network/network_info.dart';
+import '../../../../core/hive/cart_local_cache.dart';
+import '../../../../data/models/cart_item_hive.dart';
 
 class ProductDetailsActions extends StatelessWidget {
   final Product product;
@@ -36,19 +39,44 @@ class ProductDetailsActions extends StatelessWidget {
     final authTokenStore = getIt<AuthTokenStore>();
 
     if (authTokenStore.isAuthenticated) {
-      // User is authenticated, add to cart
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${product.title} ${AppStrings.addedToCart}',
+      // Check connectivity before allowing add-to-cart
+      getIt<INetworkInfo>().isConnected.then((online) {
+        if (!online) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('You are offline. Connect to add items.')),
+          );
+          return;
+        }
+        // Persist locally so cart reflects changes immediately
+        try {
+          final cache = getIt<CartLocalCache>();
+          final existing = cache
+              .getItems()
+              .firstWhere((e) => e.productId == product.id, orElse: () => CartItemHive(
+                    productId: product.id,
+                    title: product.title,
+                    imageUrl: product.image,
+                    price: product.price,
+                    quantity: 0,
+                    sizeLabel: 'M',
+                  ));
+          final nextQty = (existing.quantity) + 1;
+          cache.upsertItem(existing.copyWith(quantity: nextQty));
+        } catch (_) {}
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${product.title} ${AppStrings.addedToCart}',
+            ),
+            backgroundColor: AppColors.successGreen,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppDimensions.radiusSmall),
+            ),
           ),
-          backgroundColor: AppColors.successGreen,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimensions.radiusSmall),
-          ),
-        ),
-      );
+        );
+      });
     } else {
   // User is guest, show login dialog
       _showLoginRequiredDialog(context);

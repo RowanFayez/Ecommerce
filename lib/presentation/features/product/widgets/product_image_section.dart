@@ -12,6 +12,9 @@ import '../../favorites/cubit/favorites_cubit.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../../../../core/services/auth_token_store.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/network/network_info.dart';
+import '../../../../core/hive/cart_local_cache.dart';
+import '../../../../data/models/cart_item_hive.dart';
 
 class ProductImageSection extends StatelessWidget {
   final Product product;
@@ -67,7 +70,25 @@ class ProductImageSection extends StatelessWidget {
           right: 0,
           child: Center(
             child: GestureDetector(
-              onTap: onCartPressed ?? () => _handleAddToCart(context),
+              onTap: onCartPressed ?? () async {
+                final tokenStore = getIt<AuthTokenStore>();
+                final authed = tokenStore.isAuthenticated ||
+                    (fb.FirebaseAuth.instance.currentUser != null);
+                if (!authed) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Login required to add to cart')),
+                  );
+                  return;
+                }
+                final online = await getIt<INetworkInfo>().isConnected;
+                if (!online) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('You are offline. Connect to add items.')),
+                  );
+                  return;
+                }
+                _handleAddToCart(context);
+              },
               child: Container(
                 width: cartInnerSize,
                 height: cartInnerSize,
@@ -174,6 +195,23 @@ class ProductImageSection extends StatelessWidget {
   }
 
   void _handleAddToCart(BuildContext context) {
+    // Persist locally so CartScreen picks it up
+    try {
+      final cache = getIt<CartLocalCache>();
+      final existing = cache
+          .getItems()
+          .firstWhere((e) => e.productId == product.id, orElse: () => CartItemHive(
+                productId: product.id,
+                title: product.title,
+                imageUrl: product.image,
+                price: product.price,
+                quantity: 0,
+                sizeLabel: 'M',
+              ));
+      final nextQty = (existing.quantity) + 1;
+      cache.upsertItem(existing.copyWith(quantity: nextQty));
+    } catch (_) {}
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -246,6 +284,13 @@ class _FavoriteButtonState extends State<_FavoriteButton> {
               if (!allowed) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Login to save favorites')),
+                );
+                return;
+              }
+              final online = await getIt<INetworkInfo>().isConnected;
+              if (!online) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('You are offline. Connect to update favorites.')),
                 );
                 return;
               }

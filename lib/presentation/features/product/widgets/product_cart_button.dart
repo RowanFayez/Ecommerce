@@ -3,6 +3,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import 'package:taskaia/data/models/product.dart';
+import '../../../../core/di/injection.dart';
+import '../../../../core/hive/cart_local_cache.dart';
+import '../../../../data/models/cart_item_hive.dart';
 
 class ProductCartButton extends StatelessWidget {
   final Product product;
@@ -54,6 +57,23 @@ class ProductCartButton extends StatelessWidget {
   }
 
   void _handleAddToCart(BuildContext context) {
+    // Persist locally
+    try {
+      final cache = getIt<CartLocalCache>();
+      final existing = cache
+          .getItems()
+          .firstWhere((e) => e.productId == product.id, orElse: () => CartItemHive(
+                productId: product.id,
+                title: product.title,
+                imageUrl: product.image,
+                price: product.price,
+                quantity: 0,
+                sizeLabel: 'M',
+              ));
+      final nextQty = (existing.quantity) + 1;
+      cache.upsertItem(existing.copyWith(quantity: nextQty));
+    } catch (_) {}
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(

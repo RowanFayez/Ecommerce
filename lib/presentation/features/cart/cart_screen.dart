@@ -92,7 +92,13 @@ class CartScreen extends StatelessWidget {
                               isFullWidth: true,
                               backgroundColor: AppColors.cartButtonBackground,
                               textColor: AppColors.cartButtonIcon,
-                              onPressed: canCheckout ? () {} : null,
+                              onPressed: canCheckout
+                                  ? () {
+                                      final s = context.read<CartCubit>().state;
+                                      if (s is! CartLoaded) return;
+                                      _showCheckoutDialog(context, s);
+                                    }
+                                  : null,
                             ),
                             if (!canCheckout)
                               Padding(
@@ -117,6 +123,30 @@ class CartScreen extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+
+  void _showCheckoutDialog(BuildContext context, CartLoaded state) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Checkout',
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (_, __, ___) {
+        return const SizedBox.shrink();
+      },
+      transitionBuilder: (context, anim, __, ___) {
+        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+        return Transform.scale(
+          scale: 0.9 + 0.1 * curved.value,
+          child: Opacity(
+            opacity: curved.value,
+            child: Center(
+              child: _CheckoutCard(state: state),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -191,6 +221,118 @@ class _ErrorView extends StatelessWidget {
             AppButton(label: 'Retry', onPressed: onRetry),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CheckoutCard extends StatefulWidget {
+  final CartLoaded state;
+  const _CheckoutCard({required this.state});
+
+  @override
+  State<_CheckoutCard> createState() => _CheckoutCardState();
+}
+
+class _CheckoutCardState extends State<_CheckoutCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
+    _tick = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack);
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.9,
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkCard : AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.cardShadow.withOpacity(0.25),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                ScaleTransition(
+                  scale: _tick,
+                  child: const CircleAvatar(
+                    backgroundColor: AppColors.successGreen,
+                    child: Icon(Icons.check, color: Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text('Ready to Checkout', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _summaryRow('Items', widget.state.items.length.toString()),
+            _summaryRow('Subtotal', '\$${widget.state.subtotal.toStringAsFixed(2)}'),
+            _summaryRow('Shipping', '\$${widget.state.shipping.toStringAsFixed(2)}'),
+            const Divider(height: 20),
+            _summaryRow('Total', '\$${(widget.state.total).toStringAsFixed(2)}', bold: true),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: AppButton(
+                    label: 'Pay Now',
+                    onPressed: () {
+                      // Simulate success
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Payment successful! Order placed.')),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _summaryRow(String label, String value, {bool bold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontWeight: bold ? FontWeight.w700 : FontWeight.w500)),
+          Text(value, style: TextStyle(fontWeight: bold ? FontWeight.w800 : FontWeight.w600)),
+        ],
       ),
     );
   }
